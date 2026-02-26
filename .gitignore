@@ -1,0 +1,21 @@
+# Binaries
+weather-cli
+weather-web
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+
+# Environment variables
+.env
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
