@@ -1,0 +1,2433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{if .Info}}{{.Info.CityName}} Weather{{else}}Weather App{{end}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css"/>
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── TOKENS ── */
+    :root {
+      --bg:        #f0ebe3;
+      --card-bg:   #fffdf8;
+      --black:     #111111;
+      --text:      #111111;
+      --text-muted: rgba(0,0,0,.48);
+      --orange:    #ff3e00;
+      --radius-xl: 32px;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --font-body: 'Space Grotesk', system-ui, sans-serif;
+      --font-mono: 'Space Mono', 'Courier New', monospace;
+      --shadow-sm: 4px 4px 0 var(--black);
+      --shadow-md: 6px 6px 0 var(--black);
+      --shadow-lg: 9px 9px 0 var(--black);
+    }
+
+    /* ── DARK MODE ── */
+    [data-theme="dark"] {
+      --bg:        #16141a;
+      --card-bg:   #211e2b;
+      --black:     #e8e4f0;
+      --text:      #e8e4f0;
+      --text-muted: rgba(232,228,240,.52);
+      --orange:    #ff6b35;
+    }
+    [data-theme="dark"] body {
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(167,139,250,.18) 0%, transparent 50%),
+        radial-gradient(circle at 85% 75%, rgba(251,191,36,.10) 0%, transparent 50%),
+        radial-gradient(circle at 55% 50%, rgba(96,165,250,.09) 0%, transparent 50%);
+    }
+    [data-theme="dark"] .clay { background: var(--card-bg) !important; }
+    [data-theme="dark"] .stat-tile { filter: brightness(.82) saturate(.85); }
+    [data-theme="dark"] .hour-card { background: rgba(255,255,255,.06) !important; border-color: rgba(255,255,255,.12) !important; }
+    [data-theme="dark"] .hour-card.is-now { background: rgba(255,255,255,.14) !important; }
+    [data-theme="dark"] input, [data-theme="dark"] select { background:#2a2638 !important; color: var(--text) !important; border-color: rgba(255,255,255,.18) !important; }
+    [data-theme="dark"] .brut-section-bar { background: var(--black); color: #16141a; }
+    [data-theme="dark"] .sec-title, [data-theme="dark"] .sec-hint { color: #16141a; }
+
+    /* ── DARK MODE TOGGLE ── */
+    #dm-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 10000;
+      background: var(--black); color: var(--bg);
+      border: 2.5px solid var(--black); border-radius: 50%;
+      width: 44px; height: 44px;
+      font-size: 1.1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 3px 3px 0 var(--orange);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    #dm-toggle:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--orange); }
+
+    /* ── BASE ── */
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(167,139,250,.12) 0%, transparent 50%),
+        radial-gradient(circle at 85% 75%, rgba(251,191,36,.10) 0%, transparent 50%),
+        radial-gradient(circle at 55% 50%, rgba(96,165,250,.07) 0%, transparent 50%);
+      min-height: 100vh;
+      padding: 2rem 1rem 5rem;
+    }
+    .page { max-width: 840px; margin: 0 auto; }
+
+    /* ── ENTRANCE ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes clayBob {
+      0%,100% { transform: translateY(0) rotate(-2deg) scale(1); }
+      50%      { transform: translateY(-10px) rotate(2deg) scale(1.03); }
+    }
+    @keyframes blink    { 50% { opacity: 0; } }
+    @keyframes pulsebar { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+    @keyframes shimmer  {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+
+    .anim-1 { animation: fadeUp .55s ease both; }
+    .anim-2 { animation: fadeUp .55s .08s ease both; }
+    .anim-3 { animation: fadeUp .55s .16s ease both; }
+    .anim-4 { animation: fadeUp .55s .24s ease both; }
+    .anim-5 { animation: fadeUp .55s .32s ease both; }
+    .anim-6 { animation: fadeUp .55s .40s ease both; }
+    .anim-7 { animation: fadeUp .55s .48s ease both; }
+    .anim-8 { animation: fadeUp .55s .56s ease both; }
+    .anim-9 { animation: fadeUp .55s .64s ease both; }
+
+    /* ── OUTFIT CARD ── */
+    .outfit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .8rem;
+      margin-top: .6rem;
+    }
+    @media (max-width: 480px) { .outfit-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .outfit-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: .35rem; padding: .9rem .6rem;
+      border: 2.5px solid var(--black); border-radius: var(--radius-md);
+      box-shadow: 3px 3px 0 var(--black);
+      background: #fff; text-align: center;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .outfit-item:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--black); }
+    .outfit-icon {
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.07);
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,.12);
+      padding: 8px;
+      flex-shrink: 0;
+    }
+    .outfit-icon svg {
+      width: 100%; height: 100%;
+      display: block;
+      stroke: rgba(0,0,0,.7);
+    }
+    .outfit-label {
+      font-family: var(--font-mono); font-size: .65rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .8px; color: #111;
+    }
+    .outfit-note {
+      font-size: .68rem; color: rgba(0,0,0,.52); line-height: 1.35;
+    }
+    /* item accent colours */
+    .oi-blue   { background: linear-gradient(145deg,#dbeafe,#93c5fd); }
+    .oi-sky    { background: linear-gradient(145deg,#e0f2fe,#7dd3fc); }
+    .oi-indigo { background: linear-gradient(145deg,#e0e7ff,#a5b4fc); }
+    .oi-teal   { background: linear-gradient(145deg,#ccfbf1,#5eead4); }
+    .oi-green  { background: linear-gradient(145deg,#dcfce7,#86efac); }
+    .oi-amber  { background: linear-gradient(145deg,#fef3c7,#fcd34d); }
+    .oi-orange { background: linear-gradient(145deg,#ffedd5,#fdba74); }
+
+    .outfit-headline {
+      font-family: var(--font-mono); font-size: .8rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: rgba(0,0,0,.6); margin-bottom: .8rem;
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .outfit-headline-icon {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.08); border-radius: 50%; padding: 5px; flex-shrink: 0;
+    }
+    .outfit-headline-icon svg { width: 100%; height: 100%; stroke: rgba(0,0,0,.6); }
+
+    [data-theme="dark"] .outfit-item  { background: #2a2638; border-color: rgba(255,255,255,.2); box-shadow: 3px 3px 0 rgba(255,255,255,.15); }
+    [data-theme="dark"] .outfit-item:hover { box-shadow: 5px 5px 0 rgba(255,255,255,.2); }
+    [data-theme="dark"] .outfit-label { color: #e8e4f0; }
+    [data-theme="dark"] .outfit-note  { color: rgba(255,255,255,.45); }
+    [data-theme="dark"] .outfit-icon  { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.18); }
+    [data-theme="dark"] .outfit-icon svg { stroke: rgba(255,255,255,.8); }
+    [data-theme="dark"] .outfit-headline { color: rgba(255,255,255,.6); }
+    [data-theme="dark"] .outfit-headline-icon { background: rgba(255,255,255,.1); }
+    [data-theme="dark"] .outfit-headline-icon svg { stroke: rgba(255,255,255,.6); }
+    [data-theme="dark"] .oi-blue, [data-theme="dark"] .oi-sky,
+    [data-theme="dark"] .oi-indigo, [data-theme="dark"] .oi-teal,
+    [data-theme="dark"] .oi-green, [data-theme="dark"] .oi-amber,
+    [data-theme="dark"] .oi-orange { filter: brightness(.65) saturate(.8); }
+
+    /* ── CONSENSUS CARD ── */
+    .consensus-card {
+      background: linear-gradient(160deg, #d1fae5 0%, #6ee7b7 55%, #34d399 100%);
+      box-shadow:
+        var(--shadow-lg),
+        0 24px 52px rgba(52,211,153,.22),
+        inset 0 -12px 26px rgba(16,185,129,.18),
+        inset 0 8px 18px rgba(255,255,255,.58);
+      padding: 1.6rem 1.8rem;
+      margin-bottom: 1.8rem;
+    }
+    .cons-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: 1.2rem;
+    }
+    .cons-title-group { display: flex; align-items: center; gap: .7rem; }
+    .cons-title {
+      font-family: var(--font-mono);
+      font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 3px;
+      color: #065f46;
+    }
+    .cons-icon { font-size: 1.5rem; }
+    .cons-agree-badge {
+      display: flex; align-items: center; gap: .45rem;
+      background: var(--black);
+      font-family: var(--font-mono);
+      font-size: .65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      padding: .3rem .85rem;
+      border-radius: 4px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,.22);
+    }
+    .cons-agree-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      animation: pulsebar 1.4s ease-in-out infinite;
+    }
+    .cons-stats {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: .6rem;
+      margin-bottom: 1rem;
+    }
+    .cons-stat {
+      background: rgba(255,255,255,.5);
+      border: 2px solid rgba(0,0,0,.15);
+      border-radius: var(--radius-md);
+      padding: .6rem .7rem;
+      text-align: center;
+    }
+    .cons-stat-lbl {
+      font-family: var(--font-mono); font-size: .55rem;
+      font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: rgba(0,0,0,.45);
+      margin-bottom: .2rem;
+    }
+    .cons-stat-val {
+      font-size: 1.1rem; font-weight: 800; color: var(--black); line-height: 1;
+    }
+    .cons-stat-sub {
+      font-family: var(--font-mono); font-size: .58rem;
+      color: rgba(0,0,0,.4); margin-top: .15rem;
+    }
+    /* Per-model rows */
+    .cons-models { display: flex; flex-direction: column; gap: .45rem; }
+    .cons-model-row {
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .cons-model-name {
+      font-family: var(--font-mono); font-size: .6rem; font-weight: 700;
+      color: #065f46; width: 88px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .cons-model-bar-wrap {
+      flex: 1; position: relative; height: 10px;
+      background: rgba(0,0,0,.1); border-radius: 99px;
+      overflow: hidden;
+    }
+    .cons-model-bar {
+      position: absolute; left: 0; top: 0; height: 100%;
+      background: linear-gradient(90deg, #059669, #34d399);
+      border-radius: 99px;
+      transition: width .5s ease;
+    }
+    .cons-model-val {
+      font-family: var(--font-mono); font-size: .65rem;
+      font-weight: 700; color: var(--black);
+      width: 48px; text-align: right; flex-shrink: 0;
+    }
+    .cons-err { font-family: var(--font-mono); font-size: .62rem; color: #6b7280; font-style: italic; }
+
+    /* ── HOURLY STRIP ── */
+    .hourly-strip {
+      display: flex;
+      gap: .65rem;
+      overflow-x: auto;
+      padding: .2rem .1rem 1rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--black) transparent;
+    }
+    .hourly-strip::-webkit-scrollbar { height: 5px; }
+    .hourly-strip::-webkit-scrollbar-thumb { background: var(--black); border-radius: 99px; }
+    .hour-card {
+      flex-shrink: 0;
+      width: 72px;
+      background: #fffbf0;
+      border: 2.5px solid var(--black);
+      border-radius: var(--radius-md);
+      box-shadow: 4px 4px 0 var(--black);
+      padding: .6rem .4rem;
+      text-align: center;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .hour-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 6px 7px 0 var(--black);
+    }
+    .hour-card.is-now {
+      background: var(--black);
+      color: #fff;
+    }
+    .hour-time {
+      font-family: var(--font-mono); font-size: .6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: inherit; margin-bottom: .35rem;
+    }
+    .hour-icon { font-size: 1.35rem; margin-bottom: .3rem; }
+    .hour-temp {
+      font-size: .82rem; font-weight: 800; margin-bottom: .35rem;
+    }
+    .hour-rain-bar {
+      width: 100%; height: 5px;
+      background: rgba(0,0,0,.1);
+      border-radius: 99px; overflow: hidden;
+      margin-bottom: .2rem;
+    }
+    .hour-rain-fill {
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 99px;
+    }
+    .hour-rain-pct {
+      font-family: var(--font-mono); font-size: .52rem;
+      color: #3b82f6; font-weight: 700;
+    }
+    .hour-card.is-now .hour-rain-pct { color: #93c5fd; }
+    .hour-card.is-now .hour-rain-bar { background: rgba(255,255,255,.2); }
+
+    /* ── Precipitation chart ── */
+    .precip-chart-wrap {
+      margin-top: 1.1rem;
+      padding-top: .8rem;
+      border-top: 1.5px solid rgba(0,0,0,.08);
+    }
+    .precip-chart-title {
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      color: rgba(0,0,0,.4);
+      text-transform: uppercase;
+      margin-bottom: .4rem;
+    }
+    .precip-svg { display: block; overflow: visible; }
+    .pchart-lbl {
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      fill: rgba(0,0,0,.45);
+    }
+    .pchart-grid { stroke: rgba(0,0,0,.1); stroke-dasharray: 4,3; stroke-width: 1; }
+    .pchart-base { stroke: rgba(0,0,0,.2); stroke-width: 1.5; }
+    [data-theme="dark"] .precip-chart-wrap { border-top-color: rgba(255,255,255,.1); }
+    [data-theme="dark"] .precip-chart-title { color: rgba(255,255,255,.35); }
+    [data-theme="dark"] .pchart-lbl { fill: rgba(255,255,255,.4); }
+    [data-theme="dark"] .pchart-grid { stroke: rgba(255,255,255,.12); }
+    [data-theme="dark"] .pchart-base { stroke: rgba(255,255,255,.25); }
+    [data-theme="dark"] .precip-svg rect { opacity: .8; }
+
+
+
+    /* ── BRUTALIST HEADER ── */
+    .brut-header {
+      background: var(--black);
+      color: #fff;
+      padding: .95rem 1.4rem;
+      border: 3px solid var(--black);
+      box-shadow: var(--shadow-lg), 0 0 0 3px var(--orange);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .5rem;
+      border-radius: var(--radius-md);
+    }
+    .brut-title {
+      font-family: var(--font-mono);
+      font-size: clamp(1.1rem, 4.5vw, 2rem);
+      font-weight: 700;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: .7rem;
+    }
+    .brut-title .wi { font-size: 1.3em; color: #fbbf24; }
+    .brut-live {
+      background: var(--orange);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: .62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      padding: .35rem .9rem;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      animation: blink 2s step-end infinite;
+      white-space: nowrap;
+    }
+
+    /* ── SEARCH FORM ── */
+    .brut-form {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      border: 3px solid var(--black);
+      box-shadow: var(--shadow-md);
+      background: #fff;
+      border-radius: var(--radius-md);
+      overflow: visible; /* allow dropdown to escape */
+      position: relative;
+    }
+
+    /* Autocomplete wrapper — takes the flex slot of the old input */
+    .ac-wrap {
+      flex: 1; min-width: 140px;
+      position: relative;
+      /* clip the form border-radius on left side */
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+      overflow: visible;
+    }
+    .ac-wrap .brut-input {
+      width: 100%; border-radius: 0;
+    }
+
+    /* Dropdown list */
+    .ac-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: -3px; right: -3px; /* align with form border */
+      background: #fff;
+      border: 3px solid var(--black);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      box-shadow: 6px 6px 0 var(--black);
+      list-style: none;
+      z-index: 5000;
+      overflow: hidden;
+      animation: ac-appear .12s ease;
+    }
+    .ac-dropdown.open { display: block; }
+    @keyframes ac-appear {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ac-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .7rem 1.1rem;
+      cursor: pointer;
+      border-bottom: 2px solid rgba(0,0,0,.07);
+      transition: background .1s;
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active {
+      background: #fffbe6;
+    }
+    .ac-item.active { background: #fef9c3; }
+    .ac-city {
+      font-family: var(--font-mono); font-size: .88rem;
+      font-weight: 700; color: #111;
+      flex: 1;
+    }
+    .ac-meta {
+      font-family: var(--font-mono); font-size: .72rem;
+      color: #888; white-space: nowrap;
+    }
+    .ac-flag { font-size: 1rem; flex-shrink: 0; }
+    .ac-empty {
+      padding: .7rem 1.1rem;
+      font-family: var(--font-mono); font-size: .8rem;
+      color: #aaa; font-style: italic;
+    }
+
+    /* Dark mode */
+    [data-theme="dark"] .brut-form  { background: #2a2638; border-color: rgba(255,255,255,.25); }
+    [data-theme="dark"] .brut-input { color: var(--text); }
+    [data-theme="dark"] .brut-input:focus { background: rgba(255,255,255,.06); }
+    [data-theme="dark"] .ac-dropdown { background: #211e2b; border-color: rgba(255,255,255,.2); box-shadow: 6px 6px 0 rgba(255,255,255,.15); }
+    [data-theme="dark"] .ac-item:hover, [data-theme="dark"] .ac-item.active { background: rgba(255,255,255,.08); }
+    [data-theme="dark"] .ac-city { color: #e8e4f0; }
+    [data-theme="dark"] .ac-meta { color: #888; }
+    .brut-input {
+      flex: 1;
+      min-width: 140px;
+      padding: .85rem 1.1rem;
+      border: none;
+      border-right: 3px solid var(--black);
+      outline: none;
+      font-family: var(--font-mono);
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--black);
+      background: transparent;
+      transition: background .15s;
+    }
+    .brut-input::placeholder { color: #bbb; font-weight: 400; }
+    .brut-input:focus { background: #fffbe6; }
+    .brut-select {
+      padding: .85rem 1rem;
+      border: none;
+      border-right: 3px solid var(--black);
+      outline: none;
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--black);
+      background: transparent;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .brut-select:focus { background: #fffbe6; }
+    .brut-btn {
+      padding: .85rem 1.5rem;
+      background: var(--black);
+      color: #fff;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: background .12s, letter-spacing .12s, transform .08s;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .brut-btn:hover  { background: var(--orange); letter-spacing: 3px; }
+    .brut-btn:active { transform: scale(.97); }
+
+    /* Geo-locate button */
+    .geo-btn {
+      padding: .85rem .95rem;
+      background: #f0fdf4;
+      color: #166534;
+      border-left: 3px solid var(--black);
+      letter-spacing: 0;
+    }
+    .geo-btn:hover { background: #bbf7d0; letter-spacing: 0; color: #14532d; }
+    .geo-btn.locating {
+      background: #fefce8; color: #854d0e;
+      animation: geo-pulse .8s ease-in-out infinite alternate;
+    }
+    .geo-btn.error { background: #fff1f2; color: var(--orange); animation: none; }
+    @keyframes geo-pulse {
+      from { opacity: .7; }
+      to   { opacity: 1;  }
+    }
+    /* Spinner inside geo button */
+    .geo-spin {
+      width: 16px; height: 16px;
+      border: 2.5px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin360 .7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin360 { to { transform: rotate(360deg); } }
+
+    /* ── ERROR ── */
+    .brut-error {
+      background: #fff1f2;
+      border: 3px solid var(--orange);
+      box-shadow: var(--shadow-md);
+      padding: .9rem 1.3rem;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--orange);
+      border-radius: var(--radius-md);
+    }
+
+    /* ── CLAY BASE ── */
+    .clay {
+      border-radius: var(--radius-xl);
+      border: 3px solid var(--black);
+      position: relative;
+      overflow: hidden;
+    }
+    .clay::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,.52), transparent);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      pointer-events: none;
+    }
+
+    /* ── MAIN CLAY CARD ── */
+    .clay-card-main {
+      background: linear-gradient(160deg, #ddd6fe 0%, #c4b5fd 55%, #a78bfa 100%);
+      box-shadow:
+        var(--shadow-lg),
+        0 28px 60px rgba(124,58,237,.22),
+        inset 0 -14px 28px rgba(109,40,217,.18),
+        inset 0 10px 20px rgba(255,255,255,.6);
+      padding: 2rem 2.2rem 2rem;
+      margin-bottom: 1.8rem;
+    }
+
+    /* ── HERO SECTION ── */
+    .curr-hero {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.6rem;
+    }
+    .clay-orb {
+      width: clamp(88px,17vw,120px);
+      height: clamp(88px,17vw,120px);
+      border-radius: 50%;
+      background: linear-gradient(145deg, #ede9fe, #c4b5fd);
+      border: 3px solid var(--black);
+      box-shadow:
+        var(--shadow-md),
+        0 16px 40px rgba(124,58,237,.28),
+        inset 0 -8px 20px rgba(109,40,217,.24),
+        inset 0 8px 16px rgba(255,255,255,.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      animation: clayBob 4s ease-in-out infinite;
+    }
+    .clay-orb .wi {
+      font-size: clamp(2rem,6.5vw,3.2rem);
+      color: #5b21b6;
+      filter: drop-shadow(0 3px 5px rgba(109,40,217,.35));
+    }
+    .curr-info { flex: 1; min-width: 0; }
+    .curr-location {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #5b21b6;
+      margin-bottom: .5rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .curr-location .wi { font-size: .85rem; }
+    .curr-temp {
+      font-size: clamp(2.6rem, 10vw, 5rem);
+      font-weight: 800;
+      line-height: 1;
+      color: var(--black);
+      letter-spacing: -3px;
+    }
+    .curr-unit {
+      font-size: 1.8rem;
+      vertical-align: super;
+      color: #7c3aed;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+    .curr-desc {
+      font-size: .95rem;
+      color: #4c1d95;
+      font-weight: 600;
+      text-transform: capitalize;
+      margin-top: .4rem;
+    }
+    .brut-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: var(--orange);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: .28rem .7rem;
+      border: 2px solid var(--black);
+      box-shadow: 3px 3px 0 var(--black);
+      border-radius: 4px;
+      margin-top: .6rem;
+    }
+
+    /* ── QUOTE / ADVICE ── */
+    .quote-box {
+      background: rgba(255,255,255,.72);
+      border: 2px solid rgba(0,0,0,.18);
+      border-left: 4px solid var(--orange);
+      border-radius: var(--radius-md);
+      padding: .8rem 1rem .8rem 1.1rem;
+      margin-bottom: .8rem;
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--black);
+      position: relative;
+      backdrop-filter: blur(4px);
+    }
+    .quote-label {
+      font-size: .58rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--orange);
+      display: block;
+      margin-bottom: .25rem;
+      font-weight: 700;
+    }
+    .advice-box {
+      background: var(--black);
+      border-radius: var(--radius-md);
+      padding: .65rem 1rem;
+      margin-bottom: 1.4rem;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      box-shadow: 4px 4px 0 rgba(0,0,0,.25);
+    }
+    .advice-icon { flex-shrink: 0; width: 16px; height: 16px; color: #fbbf24; }
+    .advice-icon svg { width: 100%; height: 100%; display: block; }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .9rem;
+    }
+    .stat-tile {
+      border-radius: var(--radius-lg);
+      border: 3px solid var(--black);
+      padding: 1rem .9rem;
+      position: relative; overflow: hidden;
+      transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s;
+      cursor: default;
+    }
+    .stat-tile::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,.46), transparent);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      pointer-events: none;
+    }
+    .stat-tile:hover { transform: translate(-4px,-4px) scale(1.02); }
+
+    .st-amber  { background: linear-gradient(145deg,#fef3c7,#fbbf24); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(251,191,36,.28), inset 0 -8px 16px rgba(217,119,6,.2); }
+    .st-amber:hover  { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(251,191,36,.3); }
+    .st-sky    { background: linear-gradient(145deg,#dbeafe,#60a5fa); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(96,165,250,.28), inset 0 -8px 16px rgba(37,99,235,.18); }
+    .st-sky:hover    { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(96,165,250,.3); }
+    .st-mint   { background: linear-gradient(145deg,#dcfce7,#4ade80); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(74,222,128,.28), inset 0 -8px 16px rgba(22,163,74,.2); }
+    .st-mint:hover   { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(74,222,128,.3); }
+    .st-rose   { background: linear-gradient(145deg,#fce7f3,#f472b6); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(244,114,182,.28), inset 0 -8px 16px rgba(219,39,119,.18); }
+    .st-rose:hover   { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(244,114,182,.3); }
+    .st-violet { background: linear-gradient(145deg,#ede9fe,#a78bfa); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(167,139,250,.28), inset 0 -8px 16px rgba(109,40,217,.18); }
+    .st-violet:hover { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(167,139,250,.3); }
+    .st-peach  { background: linear-gradient(145deg,#ffedd5,#fb923c); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(251,146,60,.28), inset 0 -8px 16px rgba(234,88,12,.18); }
+    .st-peach:hover  { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(251,146,60,.3); }
+    .st-lime   { background: linear-gradient(145deg,#ecfccb,#a3e635); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(163,230,53,.28), inset 0 -8px 16px rgba(101,163,13,.2); }
+    .st-lime:hover   { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(163,230,53,.3); }
+    .st-teal   { background: linear-gradient(145deg,#ccfbf1,#2dd4bf); box-shadow: 5px 5px 0 var(--black), 0 12px 30px rgba(45,212,191,.28), inset 0 -8px 16px rgba(15,118,110,.2); }
+    .st-teal:hover   { box-shadow: 8px 8px 0 var(--black), 0 18px 40px rgba(45,212,191,.3); }
+
+    /* Wind direction badge */
+    .wind-dir-badge {
+      display: flex; align-items: center; gap: .35rem;
+      font-family: var(--font-mono); font-size: .72rem; font-weight: 800;
+      color: rgba(0,0,0,.55); margin-top: .3rem;
+    }
+    .wind-arrow {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(0,0,0,.10); border: 1.5px solid rgba(0,0,0,.18);
+      font-size: .8rem; line-height: 1;
+    }
+
+    .stat-icon-wrap { width: 20px; height: 20px; margin-bottom: .35rem; color: rgba(0,0,0,.45); }
+    .stat-icon-wrap svg { width: 100%; height: 100%; display: block; }
+    .stat-lbl  { font-family: var(--font-mono); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(0,0,0,.45); }
+    .stat-val  { font-size: 1.45rem; font-weight: 800; color: #111; line-height: 1.1; margin: .18rem 0 .05rem; }
+    .stat-unit { font-size: .68rem; font-weight: 600; color: rgba(0,0,0,.4); }
+    .s-bar     { height: 4px; background: rgba(0,0,0,.12); border-radius: 99px; margin-top: .5rem; overflow: hidden; }
+    .s-bar-fill{ height: 100%; background: rgba(0,0,0,.35); border-radius: 99px; transition: width .6s ease; }
+
+    /* dew comfort label */
+    .dew-comfort { display:inline-block; margin-top:.3rem; padding:2px 7px; border:1.5px solid rgba(0,0,0,.22); border-radius:999px; font-family:var(--font-mono); font-size:.58rem; font-weight:700; background:rgba(255,255,255,.45); color:rgba(0,0,0,.6); letter-spacing:.04em; }
+
+    /* UV badge */
+    .uv-badge   { display:inline-block; padding:2px 8px; border:2px solid var(--black); border-radius:999px; font-size:.62rem; font-family:var(--font-mono); font-weight:700; letter-spacing:.05em; background:#fff; margin-top:4px; }
+    .uv-low     { color:#15803d; }
+    .uv-moderate{ color:#ca8a04; }
+    .uv-high    { color:#ea580c; }
+    .uv-veryhigh{ color:#dc2626; }
+    .uv-extreme { color:#7c3aed; }
+
+    /* ── SECTION BAR ── */
+    .brut-section-bar {
+      background: var(--black);
+      border: 3px solid var(--black);
+      box-shadow: 7px 7px 0 var(--orange);
+      padding: .9rem 1.6rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: var(--radius-md);
+    }
+    .brut-section-bar .sec-title {
+      font-family: var(--font-mono);
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #fff;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .brut-section-bar .sec-title .wi { color: #fbbf24; }
+    .brut-section-bar .sec-hint  {
+      font-family: var(--font-mono);
+      font-size: .58rem;
+      color: #666;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── SUN CARD ── */
+    .sun-card {
+      background: linear-gradient(160deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%);
+      box-shadow:
+        var(--shadow-lg),
+        0 20px 48px rgba(251,191,36,.25),
+        inset 0 -12px 24px rgba(217,119,6,.18),
+        inset 0 8px 16px rgba(255,255,255,.58);
+      padding: 1.6rem 1.8rem;
+      margin-bottom: 1.8rem;
+    }
+    .sun-card.is-night {
+      background: linear-gradient(160deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+      box-shadow:
+        var(--shadow-lg),
+        0 20px 48px rgba(67,56,202,.28),
+        inset 0 -12px 24px rgba(49,46,129,.3),
+        inset 0 8px 16px rgba(255,255,255,.06);
+    }
+    .sun-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+      gap: .4rem;
+    }
+    .sun-title-group { display: flex; align-items: center; gap: .7rem; }
+    .sun-phase-icon  { font-size: 1.5rem; }
+    .sun-title {
+      font-family: var(--font-mono);
+      font-size: .62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #92400e;
+    }
+    .is-night .sun-title { color: #c7d2fe; }
+    .sun-daylight {
+      background: var(--black);
+      color: #fbbf24;
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: .28rem .75rem;
+      border-radius: 4px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,.25);
+    }
+    .is-night .sun-daylight { color: #818cf8; }
+    .sun-arc-wrap { position: relative; padding: 1.4rem 0 .4rem; }
+    .sun-arc-svg  { width: 100%; height: 80px; overflow: visible; display: block; }
+    .sun-times {
+      display: flex;
+      justify-content: space-between;
+      margin-top: .4rem;
+    }
+    .sun-time-lbl {
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      font-weight: 700;
+      color: #92400e;
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .is-night .sun-time-lbl { color: #c7d2fe; }
+    .sun-time-lbl .wi { font-size: .85rem; }
+    .moon-row {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      margin-top: .85rem;
+      padding-top: .75rem;
+      border-top: 1.5px solid rgba(0,0,0,.09);
+    }
+    .is-night .moon-row { border-top-color: rgba(255,255,255,.12); }
+    .moon-phase-name {
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: .03em;
+    }
+    .moon-illum {
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      color: rgba(0,0,0,.45);
+      margin-left: auto;
+    }
+    .is-night .moon-illum { color: rgba(255,255,255,.45); }
+    [data-theme="dark"] .moon-row { border-top-color: rgba(255,255,255,.1); }
+    [data-theme="dark"] .moon-phase-name { color: #e2e8f0; }
+    .sun-now-lbl {
+      font-family: var(--font-mono);
+      font-size: .62rem;
+      color: var(--black);
+      background: #fff;
+      border: 2px solid var(--black);
+      box-shadow: 2px 2px 0 var(--black);
+      padding: .12rem .45rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* ── FORECAST GRID ── */
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .9rem;
+      margin-bottom: 2rem;
+    }
+    .flip { perspective: 900px; height: 180px; }
+    .flip-inner {
+      position: relative; width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transition: transform .65s cubic-bezier(.35,.1,.15,1);
+    }
+    .flip:hover .flip-inner { transform: rotateY(180deg); }
+    .flip-inner.is-flipped  { transform: rotateY(180deg); }
+
+    .flip-f, .flip-b {
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: .3rem; padding: .8rem .5rem;
+      border: 3px solid var(--black);
+      border-radius: var(--radius-lg);
+    }
+    .flip-f::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,.44), transparent);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0; pointer-events: none;
+    }
+    .fc-0 .flip-f { background: linear-gradient(145deg,#fef3c7,#fbbf24); box-shadow: 5px 5px 0 var(--black); }
+    .fc-1 .flip-f { background: linear-gradient(145deg,#dbeafe,#60a5fa); box-shadow: 5px 5px 0 var(--black); }
+    .fc-2 .flip-f { background: linear-gradient(145deg,#dcfce7,#4ade80); box-shadow: 5px 5px 0 var(--black); }
+    .fc-3 .flip-f { background: linear-gradient(145deg,#fce7f3,#f472b6); box-shadow: 5px 5px 0 var(--black); }
+    .fc-4 .flip-f { background: linear-gradient(145deg,#ede9fe,#a78bfa); box-shadow: 5px 5px 0 var(--black); }
+    .flip-f .wi { font-size: 2.2rem; color: var(--black); }
+
+    .flip-b {
+      background: var(--black);
+      transform: rotateY(180deg);
+      box-shadow: 5px 5px 0 var(--orange);
+    }
+    .flip-b .wi { font-size: 1.8rem; color: var(--orange); }
+
+    .f-date  { font-family:var(--font-mono); font-size:.62rem; font-weight:700; color:var(--black); letter-spacing:.5px; text-transform:uppercase; }
+    .f-hi    { font-size:1.1rem; font-weight:800; color:var(--black); }
+    .f-lo    { font-size:.78rem; color:rgba(0,0,0,.5); font-weight:600; }
+    .b-lbl   { font-family:var(--font-mono); font-size:.56rem; color:var(--orange); letter-spacing:2px; text-transform:uppercase; font-weight:700; }
+    .b-desc  { font-family:var(--font-mono); font-size:.65rem; color:#fff; text-align:center; font-weight:700; }
+    .b-wind  { font-size:.68rem; color:#4ade80; font-family:var(--font-mono); font-weight:700; }
+    .b-range { font-size:.65rem; color:#aaa; font-family:var(--font-mono); }
+
+    /* Precipitation probability */
+    .f-precip {
+      display: flex; align-items: center; gap: .3rem;
+      font-family: var(--font-mono); font-size: .62rem;
+      font-weight: 700; color: rgba(0,0,0,.55);
+      width: 100%;
+    }
+    .f-precip .wi { font-size: .75rem; color: #3b82f6; }
+    .f-precip-bar {
+      flex: 1; height: 4px; background: rgba(0,0,0,.12);
+      border-radius: 99px; overflow: hidden;
+    }
+    .f-precip-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, #60a5fa, #3b82f6);
+      transition: width .4s ease;
+    }
+    .b-precip {
+      display: flex; align-items: center; gap: .3rem;
+      font-family: var(--font-mono); font-size: .68rem;
+      font-weight: 700; color: #60a5fa;
+    }
+    .b-precip .wi { font-size: .8rem; }
+
+    /* ── ALERT BADGES ── */
+    .alert-stack { display: flex; flex-direction: column; gap: .65rem; margin-bottom: 1.6rem; }
+    .alert-badge {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+      padding: .85rem 1.1rem;
+      border: 3px solid var(--black);
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      position: relative;
+      overflow: hidden;
+    }
+    .alert-badge::before {
+      content: ''; position: absolute;
+      left: 0; top: 0; bottom: 0; width: 5px;
+      animation: pulsebar 1.4s ease-in-out infinite;
+    }
+    .alert-danger  { background: #fff1f2; box-shadow: var(--shadow-md); }
+    .alert-danger::before  { background: #ef4444; }
+    .alert-danger  .alert-icon  { color: #ef4444; }
+    .alert-danger  .alert-title { color: #b91c1c; }
+    .alert-warning { background: #fffbeb; box-shadow: var(--shadow-md); }
+    .alert-warning::before { background: #f59e0b; }
+    .alert-warning .alert-icon  { color: #d97706; }
+    .alert-warning .alert-title { color: #92400e; }
+    .alert-info    { background: #eff6ff; box-shadow: var(--shadow-md); }
+    .alert-info::before { background: #3b82f6; }
+    .alert-info    .alert-icon  { color: #2563eb; }
+    .alert-info    .alert-title { color: #1e40af; }
+    .alert-icon  { font-size: 1.6rem; flex-shrink: 0; padding-top: .05rem; }
+    .alert-body  { flex: 1; }
+    .alert-title {
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: .2rem;
+      display: flex; align-items: center; gap: .45rem;
+    }
+    .alert-lvl-pip {
+      display: inline-block;
+      width: 7px; height: 7px; border-radius: 50%;
+      animation: pulsebar 1.4s ease-in-out infinite;
+    }
+    .alert-danger  .alert-lvl-pip { background: #ef4444; }
+    .alert-warning .alert-lvl-pip { background: #f59e0b; }
+    .alert-info    .alert-lvl-pip { background: #3b82f6; }
+    .alert-msg { font-size: .75rem; font-weight: 600; color: #374151; line-height: 1.45; }
+
+    /* ── FOOTER ── */
+    .footer-wrap { text-align: center; margin-top: 2.5rem; }
+    .brut-footer {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--black);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .5rem 1.2rem;
+      border-radius: var(--radius-md);
+      box-shadow: 5px 5px 0 var(--orange);
+    }
+    .brut-footer a { color: #fbbf24; text-decoration: none; }
+    .brut-footer a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .forecast-grid { grid-template-columns: repeat(3, 1fr); }
+      .flip { height: 158px; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 1.2rem .7rem 4rem; }
+      .clay-card-main { padding: 1.4rem 1.1rem 1.4rem; }
+      .brut-form { flex-direction: column; border-radius: var(--radius-md); }
+      .brut-input  { border-right: none; border-bottom: 3px solid var(--black); min-width: 0; width: 100%; }
+      .brut-select { border-right: none; border-bottom: 3px solid var(--black); width: 100%; }
+      .brut-btn    { width: 100%; justify-content: center; }
+      .curr-hero   { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .forecast-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 360px) {
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .curr-temp { letter-spacing: -1px; }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       PAGE LOADER
+    ══════════════════════════════════════════════════════════ */
+    #page-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(167,139,250,.18) 0%, transparent 55%),
+        radial-gradient(circle at 80% 70%, rgba(251,191,36,.14) 0%, transparent 55%);
+      transition: opacity .55s ease, visibility .55s ease;
+    }
+    #page-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .loader-scene {
+      position: relative;
+      width: 220px; height: 200px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+    }
+
+    /* Sun */
+    .loader-sun {
+      position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+      width: 80px; height: 80px;
+      display: flex; align-items: center; justify-content: center;
+      animation: sun-float 2.8s ease-in-out infinite;
+    }
+    .loader-sun-core {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: radial-gradient(circle at 38% 38%, #fde68a, #f59e0b);
+      box-shadow: 0 0 0 5px rgba(251,191,36,.28), 0 0 0 11px rgba(251,191,36,.10);
+      position: relative; z-index: 1; flex-shrink: 0;
+    }
+    .loader-rays {
+      position: absolute; inset: 0;
+      animation: spin-slow 8s linear infinite;
+    }
+    .loader-rays span {
+      position: absolute;
+      left: calc(50% - 2px);   /* center horizontally */
+      top: 0;                   /* start at top of 80px container */
+      width: 4px; height: 12px;
+      background: #f59e0b;
+      border-radius: 2px;
+      transform-origin: 50% 40px; /* rotate around center of 80px container */
+      opacity: .8;
+    }
+    .loader-rays span:nth-child(1) { transform: rotate(0deg);   }
+    .loader-rays span:nth-child(2) { transform: rotate(45deg);  }
+    .loader-rays span:nth-child(3) { transform: rotate(90deg);  }
+    .loader-rays span:nth-child(4) { transform: rotate(135deg); }
+    .loader-rays span:nth-child(5) { transform: rotate(180deg); }
+    .loader-rays span:nth-child(6) { transform: rotate(225deg); }
+    .loader-rays span:nth-child(7) { transform: rotate(270deg); }
+    .loader-rays span:nth-child(8) { transform: rotate(315deg); }
+
+    /* Clouds */
+    .loader-cloud {
+      position: absolute;
+      background: #fff;
+      border-radius: 50px;
+      border: 2.5px solid #111;
+      box-shadow: 3px 3px 0 #111;
+    }
+    .loader-cloud::before, .loader-cloud::after {
+      content: '';
+      position: absolute;
+      background: inherit;
+      border-radius: 50%;
+      border: 2.5px solid #111;
+    }
+    .loader-cloud-1 {
+      width: 110px; height: 38px;
+      top: 55px; left: 20px;
+      animation: cloud-drift 3.4s ease-in-out infinite;
+    }
+    .loader-cloud-1::before {
+      width: 50px; height: 50px;
+      top: -26px; left: 14px;
+    }
+    .loader-cloud-1::after {
+      width: 36px; height: 36px;
+      top: -18px; left: 48px;
+    }
+    .loader-cloud-2 {
+      width: 80px; height: 28px;
+      top: 68px; right: 12px;
+      opacity: .7;
+      animation: cloud-drift 4.2s ease-in-out infinite reverse;
+    }
+    .loader-cloud-2::before {
+      width: 36px; height: 36px;
+      top: -20px; left: 10px;
+    }
+    .loader-cloud-2::after {
+      width: 26px; height: 26px;
+      top: -14px; left: 36px;
+    }
+
+    /* Rain */
+    .loader-rain {
+      position: absolute; top: 98px; left: 35px;
+      display: flex; gap: 8px;
+    }
+    .loader-rain span {
+      display: block;
+      width: 2.5px; height: 14px;
+      background: linear-gradient(180deg, #60a5fa, #3b82f6);
+      border-radius: 2px;
+      animation: rain-fall 1.1s linear infinite;
+      opacity: 0;
+    }
+    .loader-rain span:nth-child(1)  { animation-delay: 0s;     height: 12px; }
+    .loader-rain span:nth-child(2)  { animation-delay: .18s;   height: 16px; }
+    .loader-rain span:nth-child(3)  { animation-delay: .06s;   height: 10px; }
+    .loader-rain span:nth-child(4)  { animation-delay: .28s;   height: 14px; }
+    .loader-rain span:nth-child(5)  { animation-delay: .12s;   height: 18px; }
+    .loader-rain span:nth-child(6)  { animation-delay: .36s;   height: 12px; }
+    .loader-rain span:nth-child(7)  { animation-delay: .22s;   height: 16px; }
+    .loader-rain span:nth-child(8)  { animation-delay: .42s;   height: 10px; }
+    .loader-rain span:nth-child(9)  { animation-delay: .08s;   height: 14px; }
+    .loader-rain span:nth-child(10) { animation-delay: .32s;   height: 12px; }
+
+    /* Label */
+    .loader-label {
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+      font-size: .78rem; font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--black);
+      display: flex; flex-wrap: wrap; justify-content: center;
+    }
+    .loader-label span {
+      display: inline-block;
+      animation: letter-bounce .9s ease-in-out infinite;
+    }
+    .loader-label span:nth-child(1)  { animation-delay: 0s;    }
+    .loader-label span:nth-child(2)  { animation-delay: .06s;  }
+    .loader-label span:nth-child(3)  { animation-delay: .12s;  }
+    .loader-label span:nth-child(4)  { animation-delay: .18s;  }
+    .loader-label span:nth-child(5)  { animation-delay: .24s;  }
+    .loader-label span:nth-child(6)  { animation-delay: .30s;  }
+    .loader-label span:nth-child(7)  { animation-delay: .36s;  }
+    .loader-label span:nth-child(8)  { animation-delay: .42s;  }
+    .loader-label span:nth-child(9)  { animation-delay: .48s;  }
+    .loader-label span:nth-child(10) { animation-delay: .54s;  }
+    .loader-label span:nth-child(11) { animation-delay: .60s;  }
+    .loader-label span:nth-child(12) { animation-delay: .66s;  }
+    .loader-label span:nth-child(13) { animation-delay: .72s;  }
+    .loader-label span:nth-child(14) { animation-delay: .78s;  }
+    .loader-label span:nth-child(15) { animation-delay: .84s;  }
+    .loader-label span:nth-child(16) { animation-delay: .90s;  }
+    .loader-label span:nth-child(17) { animation-delay: .96s;  }
+    .loader-label span:nth-child(18) { animation-delay: 1.02s; }
+    .loader-label span:nth-child(19) { animation-delay: 1.08s; }
+
+    /* Keyframes */
+    @keyframes sun-float {
+      0%,100% { transform: translateX(-50%) translateY(0);    }
+      50%      { transform: translateX(-50%) translateY(-8px); }
+    }
+    @keyframes spin-slow {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes cloud-drift {
+      0%,100% { transform: translateX(0);    }
+      50%      { transform: translateX(8px);  }
+    }
+    @keyframes rain-fall {
+      0%   { transform: translateY(-8px); opacity: 0;   }
+      30%  { opacity: 1; }
+      100% { transform: translateY(22px); opacity: 0;   }
+    }
+    @keyframes letter-bounce {
+      0%,100% { transform: translateY(0);    }
+      40%      { transform: translateY(-5px); }
+    }
+
+    /* Dark mode adjustments for loader */
+    [data-theme="dark"] #page-loader {
+      background: #16141a;
+    }
+    [data-theme="dark"] .loader-cloud {
+      background: #2a2638; border-color: rgba(255,255,255,.3); box-shadow: 3px 3px 0 rgba(255,255,255,.2);
+    }
+    [data-theme="dark"] .loader-cloud::before,
+    [data-theme="dark"] .loader-cloud::after {
+      background: #2a2638; border-color: rgba(255,255,255,.3);
+    }
+
+    /* ── RECENT CITIES ── */
+    .recent-cities {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: .5rem; margin-top: -.8rem; margin-bottom: 1.4rem;
+      min-height: 0;
+    }
+    .recent-cities:empty { margin: 0; }
+    .rc-label {
+      font-family: var(--font-mono); font-size: .6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: rgba(0,0,0,.35); white-space: nowrap;
+    }
+    .rc-pill {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .28rem .75rem; border: 2px solid var(--black);
+      border-radius: 999px; background: #fff;
+      font-family: var(--font-mono); font-size: .72rem; font-weight: 700;
+      color: #111; cursor: pointer;
+      box-shadow: 2px 2px 0 var(--black);
+      transition: transform .12s, box-shadow .12s, background .12s;
+      white-space: nowrap;
+    }
+    .rc-pill:hover {
+      background: #fffbe6; transform: translate(-1px,-1px);
+      box-shadow: 3px 3px 0 var(--black);
+    }
+    .rc-pill:active { transform: scale(.96); }
+    .rc-pill-del {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: rgba(0,0,0,.1); font-size: .6rem; line-height: 1;
+      color: rgba(0,0,0,.5); margin-left: .1rem;
+      transition: background .1s, color .1s;
+    }
+    .rc-pill-del:hover { background: #fecaca; color: #b91c1c; }
+    .rc-clear {
+      font-family: var(--font-mono); font-size: .62rem; font-weight: 700;
+      color: rgba(0,0,0,.3); background: none; border: none;
+      cursor: pointer; padding: .1rem .3rem; text-decoration: underline;
+      text-underline-offset: 2px; transition: color .12s;
+    }
+    .rc-clear:hover { color: var(--orange); }
+
+    [data-theme="dark"] .rc-label   { color: rgba(255,255,255,.35); }
+    [data-theme="dark"] .rc-pill    { background: #2a2638; color: #e8e4f0; border-color: rgba(255,255,255,.25); box-shadow: 2px 2px 0 rgba(255,255,255,.2); }
+    [data-theme="dark"] .rc-pill:hover { background: rgba(255,255,255,.1); }
+    [data-theme="dark"] .rc-clear   { color: rgba(255,255,255,.3); }
+    [data-theme="dark"] .rc-clear:hover { color: var(--orange); }
+
+    /* ══════════════════════════════════════════════════════════
+       WEATHER BACKGROUND CANVAS
+    ══════════════════════════════════════════════════════════ */
+    #weather-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+    #weather-canvas.visible { opacity: 1; }
+    /* Push page content above canvas */
+    .page { position: relative; z-index: 1; }
+  </style>
+</head>
+<body data-weather="{{if .Info}}{{.Info.Current.Icon}}{{end}}" data-isday="{{if .Info}}{{.Info.Sun.IsDay}}{{end}}">
+
+<canvas id="weather-canvas"></canvas>
+
+<!-- ── PAGE LOADER ── -->
+<div id="page-loader">
+  <div class="loader-scene">
+    <!-- Sun -->
+    <div class="loader-sun">
+      <div class="loader-sun-core"></div>
+      <div class="loader-rays">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <!-- Clouds -->
+    <div class="loader-cloud loader-cloud-1"></div>
+    <div class="loader-cloud loader-cloud-2"></div>
+    <!-- Rain drops -->
+    <div class="loader-rain">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <!-- Label -->
+    <div class="loader-label">
+      <span>F</span><span>e</span><span>t</span><span>c</span><span>h</span><span>i</span><span>n</span><span>g</span>
+      <span>&nbsp;</span>
+      <span>W</span><span>e</span><span>a</span><span>t</span><span>h</span><span>e</span><span>r</span>
+      <span>.</span><span>.</span><span>.</span>
+    </div>
+  </div>
+</div>
+<button id="dm-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="brut-header anim-1">
+    <div class="brut-title"><i class="wi wi-barometer"></i> WEATHER</div>
+    <div class="brut-live">&#9679;&nbsp;LIVE</div>
+  </div>
+
+  <!-- SEARCH FORM -->
+  <form class="brut-form anim-2" method="GET" action="/" id="search-form">
+    <div class="ac-wrap">
+      <input class="brut-input" type="text" name="city" id="city-input" placeholder="Enter city name..." value="{{.City}}" autocomplete="off" spellcheck="false" required/>
+      <ul class="ac-dropdown" id="ac-dropdown" role="listbox" aria-label="City suggestions"></ul>
+    </div>
+    <select class="brut-select" name="units">
+      <option value="metric"   {{if eq .Units "metric"  }}selected{{end}}>&deg;C</option>
+      <option value="imperial" {{if eq .Units "imperial"}}selected{{end}}>&deg;F</option>
+    </select>
+    <button class="brut-btn geo-btn" type="button" id="geo-btn" title="Use my location" aria-label="Use my location">
+      <svg id="geo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="9" opacity=".3"/>
+      </svg>
+    </button>
+    <button class="brut-btn" type="submit">Search &#8594;</button>
+  </form>
+  <!-- RECENT CITIES -->
+  <div id="recent-cities" class="recent-cities" aria-label="Recent searches"></div>
+
+
+  {{if .Error}}
+  <div class="brut-error anim-3">&#9888; {{.Error}}</div>
+  {{end}}
+
+  {{if .Info}}
+  {{$info := .Info}}
+  {{$cur  := .Info.Current}}
+
+  <!-- ALERT BADGES -->
+  {{if .Alerts}}
+  <div class="alert-stack anim-3">
+    {{range .Alerts}}
+    <div class="alert-badge alert-{{.Level}}">
+      <div class="alert-icon"><i class="wi {{.Icon}}"></i></div>
+      <div class="alert-body">
+        <div class="alert-title"><span class="alert-lvl-pip"></span>{{.Title}}</div>
+        <div class="alert-msg">{{.Message}}</div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  <!-- MAIN CLAY CARD -->
+  <div class="clay clay-card-main anim-4">
+
+    {{if .Quote}}
+    <div class="quote-box">
+      <span class="quote-label">Weather says</span>
+      {{.Quote}}
+    </div>
+    <div class="advice-box">
+      <span class="advice-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </span>
+      {{.Advice}}
+    </div>
+    {{end}}
+
+    <!-- HERO -->
+    <div class="curr-hero">
+      <div class="clay-orb">
+        <i class="wi {{$cur.Icon}}"></i>
+      </div>
+      <div class="curr-info">
+        <div class="curr-location">
+          <i class="wi wi-direction-right"></i>
+          {{$info.CityName}}, {{$info.Country}}
+        </div>
+        <div class="curr-temp">{{printf "%.1f" $cur.Temp}}<span class="curr-unit">{{$info.TempUnit}}</span></div>
+        <div class="curr-desc">{{$cur.Description}}</div>
+        <div class="brut-tag">
+          <i class="wi {{$cur.Icon}}" style="font-size:.85rem"></i>
+          {{$cur.Description}}
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT TILES -->
+    <div class="stat-grid">
+
+      <div class="stat-tile st-amber">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Feels Like</div>
+        <div class="stat-val">{{printf "%.1f" $cur.FeelsLike}}<span class="stat-unit">{{$info.TempUnit}}</span></div>
+      </div>
+
+      <div class="stat-tile st-sky">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Humidity</div>
+        <div class="stat-val">{{$cur.Humidity}}<span class="stat-unit">%</span></div>
+        <div class="s-bar"><div class="s-bar-fill" style="width:{{$cur.Humidity}}%"></div></div>
+      </div>
+
+      <div class="stat-tile st-mint">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Wind</div>
+        <div class="stat-val">{{printf "%.0f" $cur.WindSpeed}}<span class="stat-unit">&thinsp;{{$info.WindUnit}}</span></div>
+        <div class="wind-dir-badge">
+          <span class="wind-arrow" style="transform:rotate({{$cur.WindDir}}deg)">↑</span>
+          <span>{{windCompass $cur.WindDir}}</span>
+        </div>
+      </div>
+
+      <div class="stat-tile st-teal">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Dew Point</div>
+        <div class="stat-val">{{printf "%.1f" $cur.DewPoint}}<span class="stat-unit">{{$info.TempUnit}}</span></div>
+        <span class="dew-comfort">{{dewComfort $cur.DewPoint $info.TempUnit}}</span>
+      </div>
+
+      <div class="stat-tile st-rose">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l3.5-3.5"/>
+            <circle cx="12" cy="12" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Pressure</div>
+        <div class="stat-val">{{printf "%.0f" $cur.Pressure}}<span class="stat-unit">&thinsp;hPa</span></div>
+      </div>
+
+      <div class="stat-tile st-violet">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Cloud Cover</div>
+        <div class="stat-val">{{$cur.CloudCover}}<span class="stat-unit">%</span></div>
+        <div class="s-bar"><div class="s-bar-fill" style="width:{{$cur.CloudCover}}%"></div></div>
+      </div>
+
+      <div class="stat-tile st-peach">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">Updated</div>
+        <div class="stat-val" style="font-size:.9rem;font-family:var(--font-mono)">{{$cur.Time}}</div>
+      </div>
+
+      <div class="stat-tile st-lime">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+            <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+          </svg>
+        </div>
+        <div class="stat-lbl">UV Index</div>
+        <div class="stat-val">{{printf "%.1f" $cur.UVIndex}}</div>
+        <span class="uv-badge {{uvColorClass $cur.UVIndex}}">{{uvLevel $cur.UVIndex}}</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HOURLY FORECAST STRIP -->
+  {{if .Info.Hourly}}
+  <div class="anim-5">
+    <div class="brut-section-bar">
+      <span class="sec-title"><i class="wi wi-time-3"></i> Next 24 Hours</span>
+      <span class="sec-hint">scroll →</span>
+    </div>
+    <div class="clay" style="padding:1.2rem 1.4rem 1rem; margin-bottom:1.8rem;">
+      <div class="hourly-strip">
+        {{range $i, $h := .Info.Hourly}}
+        <div class="hour-card{{if eq $i 0}} is-now{{end}}">
+          <div class="hour-time">{{$h.Time}}</div>
+          <div class="hour-icon"><i class="wi {{$h.Icon}}"></i></div>
+          <div class="hour-temp" style="color:{{if eq $i 0}}#fff{{else}}inherit{{end}}">
+            {{printf "%.0f" $h.Temp}}{{$.Info.TempUnit}}
+          </div>
+          <div class="hour-rain-bar">
+            <div class="hour-rain-fill" style="width:{{$h.PrecipProb}}%"></div>
+          </div>
+          <div class="hour-rain-pct">{{$h.PrecipProb}}%</div>
+        </div>
+        {{end}}
+      </div>
+      <div class="precip-chart-wrap">
+        <div class="precip-chart-title">Rain probability — next 24 h</div>
+        {{hourlyPrecipSVG .Info.Hourly}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+  {{if .Info.Outfit.Items}}
+  {{$outfit := .Info.Outfit}}
+  <div class="anim-6">
+    <div class="brut-section-bar">
+      <span class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align:middle;margin-right:4px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        What to Wear
+      </span>
+      <span class="sec-hint">{{$outfit.TempTier}} conditions</span>
+    </div>
+    <div class="clay" style="padding:1.4rem 1.4rem 1.2rem; margin-bottom:1.8rem;">
+      <div class="outfit-headline">
+        <span class="outfit-headline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </span>
+        {{$outfit.Headline}}
+      </div>
+      <div class="outfit-grid">
+        {{range $outfit.Items}}
+        <div class="outfit-item {{.Color}}">
+          <div class="outfit-icon">{{outfitSVG .Icon}}</div>
+          <div class="outfit-label">{{.Label}}</div>
+          <div class="outfit-note">{{.Note}}</div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- MODEL CONSENSUS CARD -->
+  {{if .Info.Consensus}}
+  {{$cons := .Info.Consensus}}
+  {{if gt $cons.AvailCount 0}}
+  <div class="anim-7">
+    <div class="brut-section-bar">
+      <span class="sec-title"><i class="wi wi-cloudy"></i> Model Consensus</span>
+      <span class="sec-hint">{{$cons.AvailCount}} of {{len $cons.Models}} sources</span>
+    </div>
+    <div class="clay consensus-card">
+      <div class="cons-header">
+        <div class="cons-title-group">
+          <span class="cons-icon"><i class="wi wi-barometer"></i></span>
+          <span class="cons-title">{{$cons.AvailCount}} Weather Models Compared</span>
+        </div>
+        <div class="cons-agree-badge">
+          <span class="cons-agree-dot" style="background:{{agreeColor $cons.AgreePct}}"></span>
+          <span style="color:{{agreeColor $cons.AgreePct}}">{{$cons.Agreement}}</span>
+          <span style="color:#aaa">&nbsp;{{$cons.AgreePct}}%</span>
+        </div>
+      </div>
+
+      <!-- Consensus averages row -->
+      <div class="cons-stats">
+        <div class="cons-stat">
+          <div class="cons-stat-lbl">Avg Temp</div>
+          <div class="cons-stat-val">{{printf "%.1f" $cons.AvgTemp}}<span style="font-size:.7rem">{{$.Info.TempUnit}}</span></div>
+          <div class="cons-stat-sub">{{printf "%.1f" $cons.MinTemp}} — {{printf "%.1f" $cons.MaxTemp}}</div>
+        </div>
+        <div class="cons-stat">
+          <div class="cons-stat-lbl">Avg Humidity</div>
+          <div class="cons-stat-val">{{$cons.AvgHumidity}}<span style="font-size:.7rem">%</span></div>
+          <div class="cons-stat-sub">across models</div>
+        </div>
+        <div class="cons-stat">
+          <div class="cons-stat-lbl">Spread</div>
+          <div class="cons-stat-val" style="color:{{agreeColor $cons.AgreePct}}">{{printf "%.1f" $cons.Spread}}<span style="font-size:.7rem">{{$.Info.TempUnit}}</span></div>
+          <div class="cons-stat-sub">model range</div>
+        </div>
+      </div>
+
+      <!-- Per-model temperature bars -->
+      <div class="cons-models">
+        {{range $cons.Models}}
+        <div class="cons-model-row">
+          <div class="cons-model-name">{{.Model}}</div>
+          {{if .Available}}
+            <div class="cons-model-bar-wrap">
+              <div class="cons-model-bar" style="width:{{printf "%.1f" (consBarW .Temp $cons.MinTemp $cons.MaxTemp)}}%"></div>
+            </div>
+            <div class="cons-model-val">{{printf "%.1f" .Temp}}{{$.Info.TempUnit}}</div>
+          {{else}}
+            <div class="cons-err">unavailable</div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+  {{end}}
+
+  <!-- SUNRISE / SUNSET BAR -->
+  {{if .Info.Sun.SunriseTime}}
+  <div class="anim-8">
+    <div class="brut-section-bar">
+      <span class="sec-title">
+        {{if .Info.Sun.IsDay}}<i class="wi wi-day-sunny"></i>{{else}}<i class="wi wi-night-clear"></i>{{end}}
+        Daylight
+      </span>
+      <span class="sec-hint">{{.Info.Sun.DaylightHours}} total</span>
+    </div>
+    <div class="clay {{if (not .Info.Sun.IsDay)}}is-night{{end}} sun-card">
+      <div class="sun-top">
+        <div class="sun-title-group">
+          <span class="sun-phase-icon">
+            {{if .Info.Sun.IsDay}}<i class="wi wi-sunrise"></i>{{else}}<i class="wi wi-night-clear"></i>{{end}}
+          </span>
+          <span class="sun-title">{{if .Info.Sun.IsDay}}Sun is up{{else}}Night time{{end}}</span>
+        </div>
+        <div class="sun-daylight">{{.Info.Sun.DaylightHours}} of daylight</div>
+      </div>
+      <div class="sun-arc-wrap">
+        <svg class="sun-arc-svg" viewBox="0 0 400 80" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="dayGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#f59e0b"/>
+              <stop offset="50%"  stop-color="#fcd34d"/>
+              <stop offset="100%" stop-color="#f97316"/>
+            </linearGradient>
+            <linearGradient id="nightGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#4338ca"/>
+              <stop offset="100%" stop-color="#818cf8"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Horizon -->
+          <line x1="0" y1="72" x2="400" y2="72" stroke="{{if .Info.Sun.IsDay}}#92400e{{else}}#6366f1{{end}}" stroke-width="2" opacity=".4"/>
+          <!-- Track arc -->
+          <path d="M 10 72 Q 200 -10 390 72" fill="none"
+                stroke="{{if .Info.Sun.IsDay}}url(#dayGrad){{else}}url(#nightGrad){{end}}"
+                stroke-width="3" stroke-dasharray="620" stroke-dashoffset="0" opacity=".2"/>
+          <!-- Progress arc -->
+          <path d="M 10 72 Q 200 -10 390 72" fill="none"
+                stroke="{{if .Info.Sun.IsDay}}url(#dayGrad){{else}}url(#nightGrad){{end}}"
+                stroke-width="5" stroke-linecap="round"
+                stroke-dasharray="620"
+                stroke-dashoffset="{{subf 620 (mulf .Info.Sun.SunPositionPct 6.2)}}"/>
+          <!-- Sun / Moon dot -->
+          {{$pos := .Info.Sun.SunPositionPct}}
+          <circle cx="{{printf "%.2f" (arcX $pos)}}" cy="{{printf "%.2f" (arcY $pos)}}"
+                  r="9" fill="{{if .Info.Sun.IsDay}}#fbbf24{{else}}#818cf8{{end}}"
+                  stroke="{{if .Info.Sun.IsDay}}#92400e{{else}}#3730a3{{end}}" stroke-width="2"
+                  filter="url(#glow)"/>
+          <!-- Tick marks -->
+          <line x1="10"  y1="67" x2="10"  y2="77" stroke="{{if .Info.Sun.IsDay}}#92400e{{else}}#6366f1{{end}}" stroke-width="2"/>
+          <line x1="390" y1="67" x2="390" y2="77" stroke="{{if .Info.Sun.IsDay}}#92400e{{else}}#6366f1{{end}}" stroke-width="2"/>
+        </svg>
+        {{if .Info.Sun.IsDay}}
+        <div style="position:absolute;bottom:-.2rem;left:{{printf "%.1f" (mulf .Info.Sun.SunPositionPct 0.96)}}%;transform:translateX(-50%);">
+          <div class="sun-now-lbl">{{.Info.Sun.CurrentTime}}</div>
+        </div>
+        {{end}}
+      </div>
+      <div class="sun-times">
+        <div class="sun-time-lbl"><i class="wi wi-sunrise"></i>&nbsp;{{.Info.Sun.SunriseTime}}</div>
+        <div class="sun-time-lbl">{{.Info.Sun.SunsetTime}}&nbsp;<i class="wi wi-sunset"></i></div>
+      </div>
+      <div class="moon-row">
+        {{moonPhaseSVG .Info.Sun.MoonPhase}}
+        <span class="moon-phase-name">{{.Info.Sun.MoonPhaseName}}</span>
+        <span class="moon-illum">{{printf "%.0f" (mulf .Info.Sun.MoonPhase 100)}}% cycle</span>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- 5-DAY FORECAST -->
+  {{if $info.Forecast}}
+  <div class="anim-9">
+    <div class="brut-section-bar">
+      <span class="sec-title"><i class="wi wi-forecast-io-partly-cloudy-day"></i> 5-Day Forecast</span>
+      <span class="sec-hint">Tap card to flip</span>
+    </div>
+    <div class="forecast-grid">
+      {{range $i, $day := $info.Forecast}}
+      <div class="flip fc-{{$i}}">
+        <div class="flip-inner">
+          <div class="flip-f">
+            <div class="f-date">{{$day.Date}}</div>
+            <i class="wi {{$day.Icon}}"></i>
+            <div class="f-hi">{{printf "%.0f" $day.TempMax}}{{$info.TempUnit}}</div>
+            <div class="f-lo">{{printf "%.0f" $day.TempMin}}{{$info.TempUnit}}</div>
+            <div class="f-precip">
+              <i class="wi wi-raindrop"></i>
+              <div class="f-precip-bar"><div class="f-precip-fill" style="width:{{$day.PrecipProb}}%"></div></div>
+              {{$day.PrecipProb}}%
+            </div>
+          </div>
+          <div class="flip-b">
+            <div class="b-lbl">Details</div>
+            <i class="wi {{$day.Icon}}"></i>
+            <div class="b-desc">{{$day.Description}}</div>
+            <div class="b-wind">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:middle;margin-right:2px">
+                <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+              </svg>
+              {{printf "%.0f" $day.WindMax}} {{$info.WindUnit}}
+            </div>
+            <div class="b-precip"><i class="wi wi-rain"></i> {{$day.PrecipProb}}%</div>
+            <div class="b-range">{{printf "%.0f" $day.TempMax}}/{{printf "%.0f" $day.TempMin}}{{$info.TempUnit}}</div>
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+
+  {{end}}{{/* end .Info */}}
+
+  <!-- FOOTER -->
+  <div class="footer-wrap">
+    <div class="brut-footer">
+      <i class="wi wi-cloud"></i>
+      Powered by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+      &mdash; Free, no API key
+    </div>
+  </div>
+
+</div>
+<script>
+  // Touch-friendly flip cards
+  document.querySelectorAll('.flip').forEach(card => {
+    card.addEventListener('click', () => {
+      card.querySelector('.flip-inner').classList.toggle('is-flipped');
+    });
+  });
+
+  // ── GEOLOCATION ────────────────────────────────────────────────────────────
+  (function() {
+    const btn      = document.getElementById('geo-btn');
+    const icon     = document.getElementById('geo-icon');
+    const cityInput = document.querySelector('input[name="city"]');
+    const form     = document.querySelector('.brut-form');
+    if (!btn || !cityInput || !form) return;
+
+    function setLocating() {
+      btn.classList.add('locating');
+      btn.classList.remove('error');
+      // Replace icon with spinner
+      icon.style.display = 'none';
+      if (!document.getElementById('geo-spinner')) {
+        const s = document.createElement('div');
+        s.id = 'geo-spinner'; s.className = 'geo-spin';
+        btn.insertBefore(s, icon);
+      }
+      btn.disabled = true;
+    }
+
+    function setIcon(emoji) {
+      const sp = document.getElementById('geo-spinner');
+      if (sp) sp.remove();
+      icon.style.display = '';
+      btn.disabled = false;
+    }
+
+    function setError(msg) {
+      btn.classList.remove('locating');
+      btn.classList.add('error');
+      setIcon();
+      cityInput.placeholder = msg;
+      setTimeout(() => {
+        btn.classList.remove('error');
+        cityInput.placeholder = 'Enter city name...';
+      }, 3500);
+    }
+
+    btn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        setError('Geolocation not supported');
+        return;
+      }
+      setLocating();
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          try {
+            // Proxy reverse geocode through our own server (avoids CORS/HTTPS issues)
+            const res = await fetch(`/api/reverse?lat=${lat}&lon=${lon}`);
+            if (!res.ok) throw new Error('Reverse geocode failed');
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            const city = data.city;
+            if (!city) throw new Error('City not found');
+            cityInput.value = city;
+            setIcon();
+            btn.classList.remove('locating');
+            // Show loader and submit
+            document.getElementById('page-loader').classList.remove('hidden');
+            form.submit();
+          } catch (e) {
+            setError('Could not detect city');
+          }
+        },
+        (err) => {
+          const msgs = {
+            1: 'Location permission denied',
+            2: 'Location unavailable',
+            3: 'Location timed out',
+          };
+          setError(msgs[err.code] || 'Location error');
+        },
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  })();
+
+  // ── SEARCH AUTOCOMPLETE ────────────────────────────────────────────────────
+  (function() {
+    const input    = document.getElementById('city-input');
+    const dropdown = document.getElementById('ac-dropdown');
+    const form     = document.getElementById('search-form');
+    if (!input || !dropdown || !form) return;
+
+    const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+    let debounceTimer = null;
+    let activeIdx = -1;
+    let currentResults = [];
+
+    // Country code → flag emoji
+    function flag(cc) {
+      if (!cc || cc.length !== 2) return '🌍';
+      return String.fromCodePoint(
+        ...cc.toUpperCase().split('').map(c => 0x1F1E0 - 65 + c.charCodeAt(0))
+      );
+    }
+
+    function getItems() { return dropdown.querySelectorAll('.ac-item'); }
+
+    function setActive(idx) {
+      const items = getItems();
+      items.forEach(el => el.classList.remove('active'));
+      activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+      if (activeIdx >= 0) {
+        items[activeIdx].classList.add('active');
+        items[activeIdx].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function selectItem(result) {
+      // Build "City, Country" string
+      const parts = [result.name];
+      if (result.admin1) parts.push(result.admin1);
+      if (result.country) parts.push(result.country);
+      input.value = result.name + (result.country ? ', ' + result.country : '');
+      close();
+      document.getElementById('page-loader').classList.remove('hidden');
+      form.submit();
+    }
+
+    function close() {
+      dropdown.classList.remove('open');
+      activeIdx = -1;
+    }
+
+    function render(results) {
+      currentResults = results;
+      dropdown.innerHTML = '';
+      if (!results.length) {
+        dropdown.innerHTML = '<li class="ac-empty">No cities found</li>';
+        dropdown.classList.add('open');
+        return;
+      }
+      results.forEach((r, i) => {
+        const li = document.createElement('li');
+        li.className = 'ac-item';
+        li.setAttribute('role', 'option');
+        const meta = [r.admin1, r.country].filter(Boolean).join(', ');
+        li.innerHTML =
+          `<span class="ac-flag">${flag(r.country_code)}</span>` +
+          `<span class="ac-city">${r.name}</span>` +
+          `<span class="ac-meta">${meta}</span>`;
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // prevent input blur before click registers
+          selectItem(r);
+        });
+        dropdown.appendChild(li);
+      });
+      dropdown.classList.add('open');
+      activeIdx = -1;
+    }
+
+    async function fetchSuggestions(q) {
+      const url = `${GEO_URL}?name=${encodeURIComponent(q)}&count=6&language=en&format=json`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results || [];
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearTimeout(debounceTimer);
+      if (q.length < 2) { close(); return; }
+      debounceTimer = setTimeout(async () => {
+        try {
+          const results = await fetchSuggestions(q);
+          render(results);
+        } catch { close(); }
+      }, 220); // 220ms debounce — snappy but not spammy
+    });
+
+    input.addEventListener('keydown', (e) => {
+      const items = getItems();
+      if (!dropdown.classList.contains('open')) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(activeIdx + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(activeIdx - 1);
+      } else if (e.key === 'Enter') {
+        if (activeIdx >= 0 && currentResults[activeIdx]) {
+          e.preventDefault();
+          selectItem(currentResults[activeIdx]);
+        }
+        // else: fall through → normal form submit
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('mousedown', (e) => {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) close();
+    });
+
+    // Close on blur (with small delay to allow mousedown on item to fire first)
+    input.addEventListener('blur', () => setTimeout(close, 150));
+  })();
+
+  // Dark mode toggle
+  (function() {
+    const root = document.documentElement;
+    const btn  = document.getElementById('dm-toggle');
+    const saved = localStorage.getItem('wapp-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+    function updateIcon() {
+      btn.textContent = root.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+    }
+    updateIcon();
+    btn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('wapp-theme', next);
+      updateIcon();
+    });
+  })();
+
+  // Page loader — hide after load, show on search submit
+  (function() {
+    const loader = document.getElementById('page-loader');
+    function hideLoader() { loader.classList.add('hidden'); }
+    if (document.readyState === 'complete') {
+      setTimeout(hideLoader, 350);
+    } else {
+      window.addEventListener('load', () => setTimeout(hideLoader, 350));
+    }
+    const form = document.querySelector('.brut-form');
+    if (form) {
+      form.addEventListener('submit', () => { loader.classList.remove('hidden'); });
+    }
+  })();
+
+  // ── RECENT CITIES HISTORY ─────────────────────────────────────────────────
+  (function() {
+    const KEY       = 'wapp-recent';
+    const MAX       = 5;
+    const container = document.getElementById('recent-cities');
+    const input     = document.getElementById('city-input');
+    const form      = document.getElementById('search-form');
+    const loader    = document.getElementById('page-loader');
+    if (!container) return;
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+      catch { return []; }
+    }
+
+    function save(list) {
+      localStorage.setItem(KEY, JSON.stringify(list));
+    }
+
+    function addCity(city) {
+      if (!city || city.trim().length < 2) return;
+      const c = city.trim();
+      let list = load().filter(x => x.toLowerCase() !== c.toLowerCase());
+      list.unshift(c);
+      if (list.length > MAX) list = list.slice(0, MAX);
+      save(list);
+    }
+
+    function removeCity(city) {
+      save(load().filter(x => x.toLowerCase() !== city.toLowerCase()));
+      render();
+    }
+
+    function search(city) {
+      if (!input || !form) return;
+      input.value = city;
+      if (loader) loader.classList.remove('hidden');
+      form.submit();
+    }
+
+    function render() {
+      const list = load();
+      container.innerHTML = '';
+      if (!list.length) return;
+
+      const label = document.createElement('span');
+      label.className = 'rc-label';
+      label.textContent = 'Recent:';
+      container.appendChild(label);
+
+      list.forEach(city => {
+        const pill = document.createElement('span');
+        pill.className = 'rc-pill';
+        pill.setAttribute('role', 'button');
+        pill.setAttribute('tabindex', '0');
+        pill.innerHTML =
+          `<span class="rc-name">${city}</span>` +
+          `<span class="rc-pill-del" title="Remove" aria-label="Remove ${city}">✕</span>`;
+
+        // Click city name → search
+        pill.querySelector('.rc-name').addEventListener('click', () => search(city));
+        pill.querySelector('.rc-name').addEventListener('keydown', e => {
+          if (e.key === 'Enter') search(city);
+        });
+
+        // Click ✕ → remove pill
+        pill.querySelector('.rc-pill-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeCity(city);
+        });
+
+        container.appendChild(pill);
+      });
+
+      // Clear all button
+      const clr = document.createElement('button');
+      clr.className = 'rc-clear';
+      clr.textContent = 'clear all';
+      clr.addEventListener('click', () => { save([]); render(); });
+      container.appendChild(clr);
+    }
+
+    // Save city on every form submit (normal search + geo + autocomplete)
+    if (form) {
+      form.addEventListener('submit', () => {
+        const val = input ? input.value.trim() : '';
+        if (val) addCity(val);
+      });
+    }
+
+    // Also save when autocomplete or geo submits programmatically
+    // (they call form.submit() after setting input.value — addCity reads input)
+    const origSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function() {
+      if (this === form) {
+        const val = input ? input.value.trim() : '';
+        if (val) addCity(val);
+      }
+      origSubmit.call(this);
+    };
+
+    // On page load — if there's a current city in the URL, save it too
+    const urlCity = new URLSearchParams(window.location.search).get('city');
+    if (urlCity) addCity(urlCity);
+
+    render();
+  })();
+
+  // ── WEATHER BACKGROUND ENGINE ─────────────────────────────────────────────
+  (function() {
+    const canvas  = document.getElementById('weather-canvas');
+    const ctx     = canvas.getContext('2d');
+    const icon    = document.body.dataset.weather || '';
+    const isDay   = document.body.dataset.isday !== 'false';
+
+    // Detect dark mode for particle color adaptation
+    function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+    // Classify weather type from icon class
+    function classify(ic) {
+      if (!ic) return 'clear';
+      if (ic.includes('thunderstorm') || ic.includes('storm')) return 'thunder';
+      if (ic.includes('snow') || ic.includes('snowflake') || ic.includes('sleet')) return 'snow';
+      if (ic.includes('rain') || ic.includes('showers') || ic.includes('drizzle')) return 'rain';
+      if (ic.includes('fog') || ic.includes('mist') || ic.includes('haze')) return 'fog';
+      if (ic.includes('cloudy') || ic.includes('cloud') || ic.includes('overcast')) return 'cloudy';
+      return 'clear';
+    }
+
+    const type = classify(icon);
+    // Clear sunny day — nothing to draw, background gradients are enough
+    if (type === 'clear' && isDay) return;
+
+    // Resize canvas to fill viewport
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', () => { resize(); rebuildParticles(); });
+
+    // ── Particle factories ────────────────────────────────────────────────────
+    function makeRainDrop(heavy) {
+      return {
+        x:       Math.random() * canvas.width * 1.2 - canvas.width * .1,
+        y:       Math.random() * canvas.height - canvas.height,
+        len:     heavy ? (16 + Math.random() * 12) : (9 + Math.random() * 9),
+        speed:   heavy ? (20 + Math.random() * 14) : (11 + Math.random() * 9),
+        opacity: heavy ? (.28 + Math.random() * .28) : (.20 + Math.random() * .22),
+        width:   heavy ? 1.6 : 1.1,
+      };
+    }
+
+    function makeSnowFlake() {
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: 1.8 + Math.random() * 3.2,
+        speed:   .7 + Math.random() * 1.6,
+        drift:   (Math.random() - .5) * .7,
+        opacity: .32 + Math.random() * .48,
+        wobble:  Math.random() * Math.PI * 2,
+      };
+    }
+
+    function makeFogStrip() {
+      return {
+        x:       -canvas.width * .4,
+        y:       canvas.height * (.2 + Math.random() * .7),
+        speed:   .15 + Math.random() * .35,
+        opacity: .05 + Math.random() * .07,
+        h:       60 + Math.random() * 140,
+      };
+    }
+
+    function makeStar() {
+      return {
+        x:       Math.random() * canvas.width,
+        y:       Math.random() * canvas.height * .8,
+        r:       .6 + Math.random() * 1.6,
+        twinkle: Math.random() * Math.PI * 2,
+        speed:   .018 + Math.random() * .038,
+      };
+    }
+
+    function makeCloudPuff() {
+      return {
+        x:    -200 - Math.random() * canvas.width,
+        y:    canvas.height * (.05 + Math.random() * .55),
+        w:    120 + Math.random() * 180,
+        h:    50  + Math.random() * 70,
+        speed: .18 + Math.random() * .22,
+        opacity: .06 + Math.random() * .08,
+      };
+    }
+
+    // ── Lightning state ───────────────────────────────────────────────────────
+    let lightningTimer = 0, lightningAlpha = 0, lightBoltX = 0, lightBoltY = 0;
+    function scheduleLightning() { lightningTimer = 100 + Math.floor(Math.random() * 200); }
+    scheduleLightning();
+
+    function drawBolt(x, y) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,200,.9)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ffffaa';
+      ctx.shadowBlur = 22;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      let bx = x, by = y;
+      for (let i = 0; i < 7 + Math.floor(Math.random() * 4); i++) {
+        bx += (Math.random() - .5) * 44;
+        by += 28 + Math.random() * 22;
+        ctx.lineTo(bx, by);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── Build / rebuild particles ─────────────────────────────────────────────
+    const COUNTS = { rain: 150, thunder: 200, snow: 110, fog: 14, stars: 100, cloudy: 10 };
+    let particles = [];
+
+    function rebuildParticles() {
+      particles = [];
+      if (type === 'rain' || type === 'thunder') {
+        for (let i = 0; i < COUNTS[type]; i++) particles.push(makeRainDrop(type === 'thunder'));
+      } else if (type === 'snow') {
+        for (let i = 0; i < COUNTS.snow; i++) particles.push(makeSnowFlake());
+      } else if (type === 'fog') {
+        for (let i = 0; i < COUNTS.fog; i++) particles.push(makeFogStrip());
+      } else if (type === 'cloudy') {
+        for (let i = 0; i < COUNTS.cloudy; i++) particles.push(makeCloudPuff());
+      } else if (!isDay) { // clear night
+        for (let i = 0; i < COUNTS.stars; i++) particles.push(makeStar());
+      }
+    }
+    rebuildParticles();
+
+    // ── Render loop ───────────────────────────────────────────────────────────
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const dark = isDark();
+
+      if (type === 'rain' || type === 'thunder') {
+        // Rain streaks
+        ctx.save();
+        for (const d of particles) {
+          const r = dark ? '180,220,255' : '96,165,250';
+          ctx.strokeStyle = `rgba(${r},${d.opacity})`;
+          ctx.lineWidth = d.width;
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x - d.len * .2, d.y + d.len);
+          ctx.stroke();
+          d.y += d.speed; d.x -= d.speed * .12;
+          if (d.y > canvas.height + d.len) { d.y = -d.len; d.x = Math.random() * canvas.width * 1.2 - canvas.width * .1; }
+        }
+        ctx.restore();
+
+        // Lightning
+        if (type === 'thunder') {
+          lightningTimer--;
+          if (lightningTimer <= 0) {
+            lightningAlpha = .32;
+            lightBoltX = canvas.width * .15 + Math.random() * canvas.width * .7;
+            lightBoltY = 0;
+            scheduleLightning();
+          }
+          if (lightningAlpha > 0) {
+            ctx.fillStyle = `rgba(${dark ? '180,190,255' : '200,210,255'},${lightningAlpha})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (lightningAlpha > .18) drawBolt(lightBoltX, lightBoltY);
+            lightningAlpha -= .014;
+          }
+        }
+
+      } else if (type === 'snow') {
+        ctx.save();
+        for (const f of particles) {
+          f.wobble += .028; f.x += Math.sin(f.wobble) * .55 + f.drift; f.y += f.speed;
+          if (f.y > canvas.height + f.r) { f.y = -f.r * 2; f.x = Math.random() * canvas.width; }
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${dark ? '210,230,255' : '200,225,255'},${f.opacity})`;
+          ctx.fill();
+          // Sparkle cross on larger flakes
+          if (f.r > 3.2) {
+            ctx.strokeStyle = `rgba(${dark ? '220,240,255' : '180,210,255'},${f.opacity * .6})`;
+            ctx.lineWidth = .8;
+            ctx.beginPath();
+            ctx.moveTo(f.x - f.r * 1.6, f.y); ctx.lineTo(f.x + f.r * 1.6, f.y);
+            ctx.moveTo(f.x, f.y - f.r * 1.6); ctx.lineTo(f.x, f.y + f.r * 1.6);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+
+      } else if (type === 'fog') {
+        for (const s of particles) {
+          const fc = dark ? '160,160,180' : '200,200,210';
+          const grad = ctx.createLinearGradient(s.x, 0, s.x + canvas.width * 1.8, 0);
+          grad.addColorStop(0,   `rgba(${fc},0)`);
+          grad.addColorStop(.25, `rgba(${fc},${s.opacity})`);
+          grad.addColorStop(.75, `rgba(${fc},${s.opacity})`);
+          grad.addColorStop(1,   `rgba(${fc},0)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(s.x, s.y - s.h / 2, canvas.width * 1.8, s.h);
+          s.x += s.speed;
+          if (s.x > canvas.width * 1.2) s.x = -canvas.width * .6;
+        }
+
+      } else if (type === 'cloudy') {
+        for (const c of particles) {
+          const cc = dark ? '180,175,200' : '200,210,220';
+          const grad = ctx.createRadialGradient(
+            c.x + c.w / 2, c.y, c.h * .1,
+            c.x + c.w / 2, c.y, c.w * .7
+          );
+          grad.addColorStop(0, `rgba(${cc},${c.opacity})`);
+          grad.addColorStop(1, `rgba(${cc},0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.ellipse(c.x + c.w / 2, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          c.x += c.speed;
+          if (c.x > canvas.width + 200) c.x = -c.w - 100;
+        }
+
+      } else if (!isDay) {
+        // Clear night — twinkling stars
+        ctx.save();
+        for (const s of particles) {
+          s.twinkle += s.speed;
+          const alpha = .25 + .65 * Math.abs(Math.sin(s.twinkle));
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+          ctx.fill();
+          // Draw cross sparkle on brightest stars
+          if (s.r > 1.4 && alpha > .7) {
+            ctx.strokeStyle = `rgba(255,255,255,${(alpha * .4).toFixed(2)})`;
+            ctx.lineWidth = .8;
+            ctx.beginPath();
+            ctx.moveTo(s.x - s.r * 2.5, s.y); ctx.lineTo(s.x + s.r * 2.5, s.y);
+            ctx.moveTo(s.x, s.y - s.r * 2.5); ctx.lineTo(s.x, s.y + s.r * 2.5);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    // Fade canvas in after loader hides
+    setTimeout(() => { canvas.classList.add('visible'); tick(); }, 500);
+  })();
+</script>
+</body>
+</html>
