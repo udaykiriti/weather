@@ -36,7 +36,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 
 	uv := cur.UVIndex
 
-	// ── Temperature tier ──────────────────────────────────────────────────────
 	var tier string
 	switch {
 	case feelsC < 0:
@@ -53,7 +52,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		tier = "hot"
 	}
 
-	// ── Headline ──────────────────────────────────────────────────────────────
 	headlines := map[string]string{
 		"freezing": "Bundle up — it's freezing out there",
 		"cold":     "Dress warm, it's a cold one",
@@ -68,7 +66,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		TempTier: tier,
 	}
 
-	// ── Base layer (always present) ───────────────────────────────────────────
 	switch tier {
 	case "freezing":
 		advice.Items = append(advice.Items, OutfitItem{
@@ -97,7 +94,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Outer layer ───────────────────────────────────────────────────────────
 	switch tier {
 	case "freezing":
 		advice.Items = append(advice.Items, OutfitItem{
@@ -116,7 +112,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Wind layer ────────────────────────────────────────────────────────────
 	if windKmh >= 30 && tier != "freezing" && tier != "cold" {
 		advice.Items = append(advice.Items, OutfitItem{
 			Icon: "windbreaker", Label: "Windbreaker", Color: "oi-teal",
@@ -124,7 +119,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Rain gear ─────────────────────────────────────────────────────────────
 	if precipProb >= 60 {
 		advice.Items = append(advice.Items, OutfitItem{
 			Icon: "umbrella", Label: "Umbrella", Color: "oi-blue",
@@ -137,7 +131,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Sun protection ────────────────────────────────────────────────────────
 	if uv >= 8 {
 		advice.Items = append(advice.Items, OutfitItem{
 			Icon: "sunscreen", Label: "SPF 50+", Color: "oi-orange",
@@ -154,7 +147,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Hat / accessories ─────────────────────────────────────────────────────
 	if tier == "freezing" {
 		advice.Items = append(advice.Items, OutfitItem{
 			Icon: "beanie", Label: "Beanie + Gloves", Color: "oi-indigo",
@@ -167,7 +159,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 		})
 	}
 
-	// ── Footwear ──────────────────────────────────────────────────────────────
 	if precipProb >= 50 || tier == "freezing" {
 		advice.Items = append(advice.Items, OutfitItem{
 			Icon: "boots", Label: "Waterproof Boots", Color: "oi-teal",
@@ -187,8 +178,6 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 
 	return advice
 }
-
-// ── helpers ──────────────────────────────────────────────────────────────────
 
 func windLabel(kmh float64, unit string) string {
 	switch unit {
