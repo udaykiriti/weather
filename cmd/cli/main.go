@@ -11,7 +11,6 @@ import (
 	"WeatherApp/weather"
 )
 
-// ── ANSI colours ─────────────────────────────────────────────────────────────
 const (
 	reset  = "\033[0m"
 	bold   = "\033[1m"
@@ -34,11 +33,8 @@ const (
 
 const W = 70 // total line width for boxes
 
-// ── Colour helpers ────────────────────────────────────────────────────────────
-
 func clr(color, s string) string { return color + s + reset }
 
-// tempColor returns an ANSI colour sequence based on temperature value.
 func tempColor(temp float64, unit string) string {
 	t := temp
 	if unit == "°F" {
@@ -73,8 +69,6 @@ func uvColor(uv float64) string {
 	}
 }
 
-// ── Box-drawing helpers ───────────────────────────────────────────────────────
-
 func topBar(title string) string {
 	inner := W - 4 // space inside ┌ ... ┐
 	if title == "" {
@@ -94,8 +88,6 @@ func midBar() string { return "  ├" + strings.Repeat("─", W-4) + "┤" }
 func row(s string) string { return "  │  " + s }
 func blankRow() string    { return "  │" }
 
-// ── Progress bar ──────────────────────────────────────────────────────────────
-
 func progressBar(pct, width int, barColor string) string {
 	n := pct * width / 100
 	if n > width {
@@ -104,8 +96,6 @@ func progressBar(pct, width int, barColor string) string {
 	return clr(barColor, strings.Repeat("█", n)) +
 		clr(dim, strings.Repeat("░", width-n))
 }
-
-// ── Alert rendering ───────────────────────────────────────────────────────────
 
 func alertColor(level weather.AlertLevel) string {
 	switch level {
@@ -128,8 +118,6 @@ func alertPrefix(level weather.AlertLevel) string {
 		return " i  INFO    "
 	}
 }
-
-// ── Sun arc (text version) ────────────────────────────────────────────────────
 
 // sunLine renders the daylight arc as a coloured text bar.
 // Dots (·) represent sky, dashes (─) represent horizon edges.
@@ -176,8 +164,6 @@ func sunLine(sun weather.SunBar, width int) string {
 	return strings.Join(colored, "")
 }
 
-// ── Word wrap ─────────────────────────────────────────────────────────────────
-
 func wordWrap(s string, maxWidth int) []string {
 	words := strings.Fields(s)
 	if len(words) == 0 {
@@ -195,8 +181,6 @@ func wordWrap(s string, maxWidth int) []string {
 	}
 	return append(lines, line)
 }
-
-// ── Loading spinner ───────────────────────────────────────────────────────────
 
 func startSpinner(msg string) chan struct{} {
 	done := make(chan struct{})
@@ -218,8 +202,7 @@ func startSpinner(msg string) chan struct{} {
 	return done
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
+/* Main func*/
 func main() {
 	cityFlag := flag.String("city", "", "City name (or first positional argument)")
 	units := flag.String("units", "metric", "Units: metric (°C/km·h) or imperial (°F/mph)")
@@ -257,7 +240,6 @@ func main() {
 
 	fmt.Println()
 
-	// ── HEADER ────────────────────────────────────────────────────────────────
 	cityUpper := strings.ToUpper(info.CityName) + ", " + strings.ToUpper(info.Country)
 	hLeft := "  WEATHER  —  " + cityUpper
 	hRight := unitLabel + "  ●  LIVE"
@@ -276,7 +258,6 @@ func main() {
 	fmt.Println("  ╚" + strings.Repeat("═", W-4) + "╝")
 	fmt.Println()
 
-	// ── ALERTS ────────────────────────────────────────────────────────────────
 	alerts := weather.Alerts(info)
 	if len(alerts) > 0 {
 		for _, a := range alerts {
@@ -287,7 +268,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// ── CURRENT CONDITIONS ────────────────────────────────────────────────────
 	fmt.Println(topBar("Current Conditions"))
 
 	quote := weather.QuoteFromIcon(cur.Icon)
@@ -354,7 +334,6 @@ func main() {
 	fmt.Println(botBar())
 	fmt.Println()
 
-	// ── DAYLIGHT ──────────────────────────────────────────────────────────────
 	if info.Sun.SunriseTime != "" {
 		arcWidth := W - 22 // leave room for sunrise/sunset labels
 		fmt.Println(topBar("Daylight  " + info.Sun.DaylightHours))
@@ -382,7 +361,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// ── MOON PHASE ────────────────────────────────────────────────────────────
 	if info.Sun.MoonPhaseName != "" {
 		moonIcon := moonPhaseIcon(info.Sun.MoonPhase)
 		illumPct := 0
@@ -469,7 +447,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// ── 5-DAY FORECAST ────────────────────────────────────────────────────────
 	fmt.Println(topBar("5-Day Forecast"))
 	fmt.Println(row(fmt.Sprintf("%-10s  %-15s  %5s  %5s  %8s  %-12s",
 		clr(dim, "DATE"),
@@ -509,7 +486,6 @@ func main() {
 	fmt.Println(botBar())
 	fmt.Println()
 
-	// ── WHAT TO WEAR ──────────────────────────────────────────────────────────
 	outfit := info.Outfit
 	if len(outfit.Items) > 0 {
 		fmt.Println(topBar("What to Wear"))
@@ -527,7 +503,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// ── MODEL CONSENSUS ───────────────────────────────────────────────────────
 	if info.Consensus != nil && info.Consensus.AvailCount > 0 {
 		cons := info.Consensus
 		fmt.Println(topBar("Model Consensus"))
@@ -593,7 +568,6 @@ func main() {
 }
 
 func outfitEmoji(icon string) string {
-	// ASCII/Unicode box symbols — no emoji dependency
 	m := map[string]string{
 		"thermal":    "[~~]",
 		"sweater":    "[\\~/]",
