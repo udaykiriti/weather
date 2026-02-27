@@ -1,8 +1,12 @@
 # Weather App
 
+![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8?style=flat&logo=go)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-active-success)
+[![Open-Meteo](https://img.shields.io/badge/API-Open--Meteo-blue)](https://open-meteo.com/)
+
 A weather application built in Go with two interfaces: a command-line tool and a web server.
 Uses the [Open-Meteo](https://open-meteo.com/) API - completely free, no API key or sign-up required.
-
 ---
 
 > [!NOTE]
