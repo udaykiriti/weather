@@ -5,11 +5,10 @@ Uses the [Open-Meteo](https://open-meteo.com/) API - completely free, no API key
 
 ---
 
-> **NOTE**
+> [!NOTE]
 > This app requires outbound internet access to `geocoding-api.open-meteo.com` and
 > `api.open-meteo.com`. If you are behind a corporate proxy or a restrictive firewall,
 > requests may time out. See the [Network / Proxy](#network--proxy) section below.
-
 ---
 
 ## Features
