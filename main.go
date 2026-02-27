@@ -15,8 +15,6 @@ import (
 	"WeatherApp/weather"
 )
 
-// ── Template ────────────────────────────────────────────────────────────────
-
 // outfitIcons is built once at startup; each value is a safe inline SVG string.
 var outfitIcons = map[string]template.HTML{
 	"thermal":     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v4l2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8l2-2V4z"/><line x1="9" y1="4" x2="9" y2="8"/><line x1="15" y1="4" x2="15" y2="8"/><path d="M6 12h12"/></svg>`,
@@ -242,8 +240,6 @@ var tmpl = template.Must(
 	}).ParseFiles("templates/index.html"),
 )
 
-// ── Cache ────────────────────────────────────────────────────────────────────
-
 const (
 	cacheTTL     = 10 * time.Minute
 	cacheMaxSize = 200             // max entries before oldest-first eviction
@@ -315,8 +311,6 @@ func startCacheCleanup() {
 	}()
 }
 
-// ── Page data ────────────────────────────────────────────────────────────────
-
 type PageData struct {
 	City   string
 	Units  string
@@ -327,7 +321,6 @@ type PageData struct {
 	Error  string
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
 
 func main() {
 	client := weather.NewClient()
