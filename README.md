@@ -7,8 +7,8 @@
 ![CLI](https://img.shields.io/badge/CLI-Ready-purple?style=for-the-badge)
 ![Web](https://img.shields.io/badge/Web-Server-orange?style=for-the-badge)
 
-A weather application built in Go with two interfaces: a command-line tool and a web server.
-Uses the [Open-Meteo](https://open-meteo.com/) API - completely free, no API key or sign-up required.
+A weather app in Go with CLI and web interfaces. Uses the free Open-Meteo API - no key required.
+
 ---
 
 > [!NOTE]
@@ -19,17 +19,22 @@ Uses the [Open-Meteo](https://open-meteo.com/) API - completely free, no API key
 
 ## Features
 
-- Real-time weather conditions (temperature, humidity, pressure, wind, UV index)
-- 5-day forecast with precipitation probability
-- Sunrise/sunset arc with daylight hours
-- Weather alerts (heat, frost, storm, high UV, and more)
-- Funny weather-matched quotes and feels-like advice
-- Multi-model consensus (ECMWF, ICON, Meteo-France, MET Norway)
-- Claymorphism + brutalism web UI with weather icons
-- Full-colour ANSI CLI with animated spinner and box-drawing layout
-- Responsive web design (mobile-friendly)
-- 10-minute in-memory cache on the web server
+### Weather Data
+- **Real-time conditions** - temperature, humidity, pressure, wind, UV index
+- **5-day forecast** - with precipitation probability
+- **Sun & moon** - sunrise/sunset arc with daylight hours
+- **Weather alerts** - heat, frost, storm, high UV & more
 
+### Interface
+- **Dual experience** - slick CLI tool + modern web server
+- **CLI** - full-color ANSI with animated spinners & box layouts
+- **Web UI** - claymorphism + brutalism design with weather icons
+
+### Under the Hood
+- **Multi-model consensus** - ECMWF, ICON, Meteo-France, MET Norway
+- **Smart caching** - 10-minute in-memory cache on web server
+- **Responsive** - mobile-friendly design
+- **Fun touches** - weather-matched quotes & feels-like advice
 ---
 
 ## Project Structure
