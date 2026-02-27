@@ -42,8 +42,6 @@ func Alerts(info *WeatherInfo) []Alert {
 	feelsC := toCelsius(cur.FeelsLike, info.TempUnit)
 	windKmh := toKmh(cur.WindSpeed, info.WindUnit)
 
-	// ── DANGER ──────────────────────────────────────────────────
-
 	if isThunder(cur.Icon) {
 		alerts = append(alerts, Alert{
 			Level:   AlertDanger,
@@ -79,8 +77,6 @@ func Alerts(info *WeatherInfo) []Alert {
 			Message: "Extremely dangerous winds. Take shelter immediately. Do not drive.",
 		})
 	}
-
-	// ── WARNING ─────────────────────────────────────────────────
 
 	if isHeavyRain(cur.Icon) {
 		alerts = append(alerts, Alert{
@@ -128,8 +124,6 @@ func Alerts(info *WeatherInfo) []Alert {
 			Message: "Gale-force winds. Secure loose outdoor objects. Drive with care.",
 		})
 	}
-
-	// ── INFO ────────────────────────────────────────────────────
 
 	if isFog(cur.Icon) {
 		alerts = append(alerts, Alert{
