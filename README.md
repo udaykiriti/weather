@@ -209,7 +209,7 @@ Weather conditions are decoded from [WMO Weather Codes](https://open-meteo.com/e
 
 ## Network / Proxy
 
-> **WARNING**
+> [!WARNING]
 > If the CLI or web app shows `dial tcp: lookup ... connection refused` or
 > `context deadline exceeded`, your system's DNS resolver is unreachable or
 > your network blocks outbound HTTPS.
@@ -227,7 +227,7 @@ export NO_PROXY=localhost,127.0.0.1
 make run-cli ARGS="London"
 ```
 
-> **TIP**
+> [!TIP]
 > Go's `net/http` package respects `HTTPS_PROXY` and `HTTP_PROXY` automatically —
 > no code changes are needed.
 
