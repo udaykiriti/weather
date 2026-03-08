@@ -1,0 +1,3 @@
+# Tell GitHub Linguist that HTML templates are not standalone HTML files.
+# This keeps the repo language bar accurate — the project is a Go app.
+templates/*.html linguist-detectable=false
