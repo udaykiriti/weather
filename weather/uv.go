@@ -1,17 +1,20 @@
 package weather
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // UVLevel returns a short label for a UV index value.
 func UVLevel(uv float64) string {
 	switch {
-	case uv < 3:
+	case uv < uvLow:
 		return "Low"
-	case uv < 6:
+	case uv < uvModerate:
 		return "Moderate"
-	case uv < 8:
+	case uv < uvHigh:
 		return "High"
-	case uv < 11:
+	case uv < uvVeryHigh:
 		return "Very High"
 	default:
 		return "Extreme"
@@ -21,13 +24,13 @@ func UVLevel(uv float64) string {
 // UVAdvice returns sun-protection advice for a UV index value.
 func UVAdvice(uv float64) string {
 	switch {
-	case uv < 3:
+	case uv < uvLow:
 		return "No protection needed. Enjoy the sun safely."
-	case uv < 6:
+	case uv < uvModerate:
 		return "Wear sunscreen SPF 30+. Hat recommended."
-	case uv < 8:
+	case uv < uvHigh:
 		return "SPF 50+ sunscreen, hat and sunglasses. Seek shade 11am–3pm."
-	case uv < 11:
+	case uv < uvVeryHigh:
 		return "SPF 50+ and protective clothing essential. Minimize sun exposure."
 	default:
 		return "Extreme UV. Stay indoors if possible. Full protection required."
@@ -37,13 +40,13 @@ func UVAdvice(uv float64) string {
 // UVColorClass returns a CSS class name for the UV level badge color.
 func UVColorClass(uv float64) string {
 	switch {
-	case uv < 3:
+	case uv < uvLow:
 		return "uv-low"
-	case uv < 6:
+	case uv < uvModerate:
 		return "uv-moderate"
-	case uv < 8:
+	case uv < uvHigh:
 		return "uv-high"
-	case uv < 11:
+	case uv < uvVeryHigh:
 		return "uv-veryhigh"
 	default:
 		return "uv-extreme"
@@ -52,18 +55,9 @@ func UVColorClass(uv float64) string {
 
 // UVBar returns a filled/empty string progress bar (0-12 scale) for CLI.
 func UVBar(uv float64, width int) string {
-	max := 12.0
-	n := int(uv / max * float64(width))
+	n := int(uv / 12.0 * float64(width))
 	if n > width {
 		n = width
 	}
-	bar := ""
-	for i := 0; i < width; i++ {
-		if i < n {
-			bar += "█"
-		} else {
-			bar += "░"
-		}
-	}
-	return fmt.Sprintf("[%s] %.1f", bar, uv)
+	return fmt.Sprintf("[%s%s] %.1f", strings.Repeat("█", n), strings.Repeat("░", width-n), uv)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math"
@@ -222,7 +223,7 @@ func main() {
 	done := startSpinner("Fetching weather for " + clr(bold+white, city) + " ...")
 
 	client := weather.NewClient()
-	info, err := client.GetWeather(city, *units)
+	info, err := client.GetWeather(context.Background(), city, *units)
 	close(done)
 	time.Sleep(20 * time.Millisecond) // let spinner goroutine clear line
 
@@ -575,7 +576,7 @@ func outfitEmoji(icon string) string {
 		"tshirt":     "[T]  ",
 		"coat":       "[|||]",
 		"jacket":     "[/|\\]",
-		"windbreaker":"[>>>]",
+		"windbreaker": "[>>>]",
 		"umbrella":   " ( ) ",
 		"raincoat":   "[:::]",
 		"sunscreen":  "[SPF]",
@@ -592,22 +593,22 @@ func outfitEmoji(icon string) string {
 }
 
 func moonPhaseIcon(phase float64) string {
-switch {
-case phase < 0.034 || phase >= 0.966:
-return "( )" // new moon
-case phase < 0.216:
-return "()" // waxing crescent
-case phase < 0.284:
-return "(|" // first quarter
-case phase < 0.466:
-return "(@" // waxing gibbous
-case phase < 0.534:
-return "(@)" // full moon
-case phase < 0.716:
-return "@)" // waning gibbous
-case phase < 0.784:
-return "|)" // last quarter
-default:
-return "()" // waning crescent
-}
+	switch {
+	case phase < 0.034 || phase >= 0.966:
+		return "( )" // new moon
+	case phase < 0.216:
+		return "()" // waxing crescent
+	case phase < 0.284:
+		return "(|" // first quarter
+	case phase < 0.466:
+		return "(@" // waxing gibbous
+	case phase < 0.534:
+		return "(@)" // full moon
+	case phase < 0.716:
+		return "@)" // waning gibbous
+	case phase < 0.784:
+		return "|)" // last quarter
+	default:
+		return "()" // waning crescent
+	}
 }

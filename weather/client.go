@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -165,41 +166,55 @@ type WeatherInfo struct {
 	Outfit      OutfitAdvice
 }
 
+// decodeJSONResponse reads an HTTP response body into v and closes the body.
+// It returns an error if the status code is not 200 or JSON decoding fails.
+// The body is always closed, even on error.
+func decodeJSONResponse(resp *http.Response, v any) error {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		return fmt.Errorf("decode failed: %w", err)
+	}
+	return nil
+}
+
 // getJSON makes a GET request with one automatic retry on timeout/connection error.
-func (c *Client) getJSON(rawURL string, v any) error {
+// The request is bound to ctx and will be cancelled if ctx is cancelled.
+func (c *Client) getJSON(ctx context.Context, rawURL string, v any) error {
 	const maxAttempts = 2
 	var lastErr error
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
-			time.Sleep(1 * time.Second) // brief pause before retry
+			// Brief pause before retry; honour context cancellation.
+			select {
+			case <-time.After(time.Second):
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
-		resp, err := c.HTTP.Get(rawURL)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := c.HTTP.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("request failed: %w", err)
 			continue // retry on network error
 		}
-		// Close body explicitly (not deferred) so each retry releases its connection.
-		err = func() error {
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-				return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
-			}
-			if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
-				return fmt.Errorf("decode failed: %w", err)
-			}
-			return nil
-		}()
-		return err // success or non-retryable error
+		// decodeJSONResponse closes resp.Body so each retry releases its connection.
+		return decodeJSONResponse(resp, v)
 	}
 	return lastErr
 }
 
 // Geocode resolves a city name to coordinates.
-func (c *Client) Geocode(city string) (*GeoLocation, error) {
+func (c *Client) Geocode(ctx context.Context, city string) (*GeoLocation, error) {
 	u := fmt.Sprintf("%s?name=%s&count=1&language=en&format=json", geoURL, url.QueryEscape(city))
 	var geo geoResponse
-	if err := c.getJSON(u, &geo); err != nil {
+	if err := c.getJSON(ctx, u, &geo); err != nil {
 		return nil, fmt.Errorf("geocode: %w", err)
 	}
 	if len(geo.Results) == 0 {
@@ -210,11 +225,11 @@ func (c *Client) Geocode(city string) (*GeoLocation, error) {
 
 // ReverseGeocode converts coordinates to a city name via Nominatim.
 // Returns the best available city-level name (city → town → village → county).
-func (c *Client) ReverseGeocode(lat, lon float64) (string, error) {
+func (c *Client) ReverseGeocode(ctx context.Context, lat, lon float64) (string, error) {
 	u := fmt.Sprintf("%s?lat=%.6f&lon=%.6f&format=json&zoom=10&addressdetails=1",
 		reverseURL, lat, lon)
 
-	req, err := http.NewRequest(http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return "", err
 	}
@@ -255,13 +270,9 @@ func (c *Client) ReverseGeocode(lat, lon float64) (string, error) {
 		}
 	}
 	if result.DisplayName != "" {
-		// Fall back to first part of display name (before first comma)
-		if idx := len(result.DisplayName); idx > 0 {
-			for i, c := range result.DisplayName {
-				if c == ',' {
-					return result.DisplayName[:i], nil
-				}
-			}
+		// Fall back to the first segment of the display name (before the first comma).
+		if before, _, found := strings.Cut(result.DisplayName, ","); found {
+			return strings.TrimSpace(before), nil
 		}
 		return result.DisplayName, nil
 	}
@@ -269,8 +280,8 @@ func (c *Client) ReverseGeocode(lat, lon float64) (string, error) {
 }
 
 // GetWeather fetches current weather + 5-day forecast for a city.
-func (c *Client) GetWeather(city, units string) (*WeatherInfo, error) {
-	loc, err := c.Geocode(city)
+func (c *Client) GetWeather(ctx context.Context, city, units string) (*WeatherInfo, error) {
+	loc, err := c.Geocode(ctx, city)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +302,7 @@ func (c *Client) GetWeather(city, units string) (*WeatherInfo, error) {
 	)
 
 	var raw forecastRaw
-	if err := c.getJSON(u, &raw); err != nil {
+	if err := c.getJSON(ctx, u, &raw); err != nil {
 		return nil, fmt.Errorf("forecast: %w", err)
 	}
 
@@ -347,28 +358,29 @@ func (c *Client) GetWeather(city, units string) (*WeatherInfo, error) {
 	info.Outfit = BuildOutfit(info)
 
 	// Fetch multi-model consensus in parallel (non-fatal if it fails)
-	info.Consensus = c.FetchConsensus(loc.Latitude, loc.Longitude, loc.Timezone, tempUnit, windUnit)
+	info.Consensus = c.FetchConsensus(ctx, loc.Latitude, loc.Longitude, loc.Timezone, tempUnit, windUnit)
 
 	return info, nil
 }
 
+// parseTimeInZone parses a "2006-01-02T15:04" string in the given location.
+// On error it returns the zero time; callers should treat zero as "unknown".
+func parseTimeInZone(s string, tz *time.Location) time.Time {
+	const layout = "2006-01-02T15:04"
+	t, _ := time.ParseInLocation(layout, s, tz)
+	return t
+}
+
 // buildSunBar computes all values for the sunrise/sunset progress bar.
 func buildSunBar(currentTimeStr, sunriseStr, sunsetStr, timezone string) SunBar {
-	const layout = "2006-01-02T15:04"
-
 	tz, err := time.LoadLocation(timezone)
 	if err != nil {
 		tz = time.UTC
 	}
 
-	parse := func(s string) time.Time {
-		t, _ := time.ParseInLocation(layout, s, tz)
-		return t
-	}
-
-	sunrise := parse(sunriseStr)
-	sunset := parse(sunsetStr)
-	now := parse(currentTimeStr)
+	sunrise := parseTimeInZone(sunriseStr, tz)
+	sunset := parseTimeInZone(sunsetStr, tz)
+	now := parseTimeInZone(currentTimeStr, tz)
 
 	daylightMins := sunset.Sub(sunrise).Minutes()
 	h := int(daylightMins) / 60
@@ -408,7 +420,7 @@ func parseHourly(h hourlyRaw, currentTimeStr, timezone string) []HourlyPoint {
 		return nil
 	}
 
-	var points []HourlyPoint
+	points := make([]HourlyPoint, 0, 24)
 	for i, ts := range h.Time {
 		t, err := time.ParseInLocation(layout, ts, tz)
 		if err != nil {
