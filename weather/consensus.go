@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -66,12 +67,20 @@ type modelResponse struct {
 }
 
 // consensusClient is a separate HTTP client with a shorter timeout so slow
-// model fetches never block the main request beyond 6 seconds.
-var consensusClient = &Client{HTTP: &http.Client{Timeout: 6 * time.Second}}
+// model fetches never block the main request beyond consensusTimeout.
+var consensusClient = &Client{HTTP: &http.Client{Timeout: consensusTimeout}}
+
+// Agreement percentage constants.
+const (
+	consensusTimeout      = 6 * time.Second
+	agreementHighPct      = 80 // % — "High" agreement
+	agreementModeratePct  = 50 // % — "Moderate" agreement; below this is "Low"
+	agreementSpreadFactor = 12 // percentage points lost per °C of model spread
+)
 
 // fetchModel fetches current conditions from one Open-Meteo model.
 // tempUnit must be "celsius" or "fahrenheit"; windUnit "kmh" or "mph".
-func fetchModel(name, modelParam string, lat, lon float64, timezone, tempUnit, windUnit string) ModelReading {
+func fetchModel(ctx context.Context, name, modelParam string, lat, lon float64, timezone, tempUnit, windUnit string) ModelReading {
 	r := ModelReading{Model: name}
 
 	u := fmt.Sprintf(
@@ -83,7 +92,7 @@ func fetchModel(name, modelParam string, lat, lon float64, timezone, tempUnit, w
 	)
 
 	var resp modelResponse
-	if err := consensusClient.getJSON(u, &resp); err != nil {
+	if err := consensusClient.getJSON(ctx, u, &resp); err != nil {
 		r.Err = err.Error()
 		return r
 	}
@@ -111,7 +120,7 @@ func fetchModel(name, modelParam string, lat, lon float64, timezone, tempUnit, w
 
 // FetchConsensus fetches 4 weather models in parallel and computes agreement stats.
 // tempUnit must be "celsius"/"fahrenheit"; windUnit "kmh"/"mph".
-func (c *Client) FetchConsensus(lat, lon float64, timezone, tempUnit, windUnit string) *ConsensusInfo {
+func (c *Client) FetchConsensus(ctx context.Context, lat, lon float64, timezone, tempUnit, windUnit string) *ConsensusInfo {
 	readings := make([]ModelReading, len(forecastModels))
 	var wg sync.WaitGroup
 
@@ -119,7 +128,7 @@ func (c *Client) FetchConsensus(lat, lon float64, timezone, tempUnit, windUnit s
 		wg.Add(1)
 		go func(idx int, name, param string) {
 			defer wg.Done()
-			readings[idx] = fetchModel(name, param, lat, lon, timezone, tempUnit, windUnit)
+			readings[idx] = fetchModel(ctx, name, param, lat, lon, timezone, tempUnit, windUnit)
 		}(i, m.Name, m.Param)
 	}
 	wg.Wait()
@@ -162,16 +171,16 @@ func (c *Client) FetchConsensus(lat, lon float64, timezone, tempUnit, windUnit s
 	cons.AvgPressure = math.Round(sumPressure/float64(count)*10) / 10
 	cons.Spread = math.Round((cons.MaxTemp-cons.MinTemp)*10) / 10
 
-	// Agreement: 100% at 0°C spread, −12% per degree of spread
-	pct := 100 - int(cons.Spread*12)
+	// Agreement: 100% at 0°C spread, losing agreementSpreadFactor% per degree.
+	pct := 100 - int(cons.Spread*agreementSpreadFactor)
 	if pct < 0 {
 		pct = 0
 	}
 	cons.AgreePct = pct
 	switch {
-	case pct >= 80:
+	case pct >= agreementHighPct:
 		cons.Agreement = "High"
-	case pct >= 50:
+	case pct >= agreementModeratePct:
 		cons.Agreement = "Moderate"
 	default:
 		cons.Agreement = "Low"

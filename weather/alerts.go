@@ -51,7 +51,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if feelsC <= -15 {
+	if feelsC <= tempExtremeCold {
 		alerts = append(alerts, Alert{
 			Level:   AlertDanger,
 			Icon:    "wi-snowflake-cold",
@@ -60,7 +60,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if feelsC >= 40 {
+	if feelsC >= tempExtremeHeat {
 		alerts = append(alerts, Alert{
 			Level:   AlertDanger,
 			Icon:    "wi-hot",
@@ -69,7 +69,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if windKmh >= 118 {
+	if windKmh >= windHurricane {
 		alerts = append(alerts, Alert{
 			Level:   AlertDanger,
 			Icon:    "wi-strong-wind",
@@ -96,8 +96,8 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	// Freeze: -15 °C < tempC < 0 °C (extreme cold already covers ≤ -15)
-	if tempC < 0 && tempC > -15 {
+	// Freeze: tempExtremeCold < tempC < 0 °C (extreme cold already covers ≤ tempExtremeCold)
+	if tempC < tempFreezing && tempC > tempExtremeCold {
 		alerts = append(alerts, Alert{
 			Level:   AlertWarning,
 			Icon:    "wi-thermometer-exterior",
@@ -106,8 +106,8 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	// Heatwave: 35 °C ≤ feelsC < 40 °C (extreme heat covers ≥ 40)
-	if feelsC >= 35 && feelsC < 40 {
+	// Heatwave: tempHeatwave ≤ feelsC < tempExtremeHeat (extreme heat covers ≥ tempExtremeHeat)
+	if feelsC >= tempHeatwave && feelsC < tempExtremeHeat {
 		alerts = append(alerts, Alert{
 			Level:   AlertWarning,
 			Icon:    "wi-day-sunny",
@@ -116,7 +116,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if windKmh >= 62 && windKmh < 118 {
+	if windKmh >= windStrong && windKmh < windHurricane {
 		alerts = append(alerts, Alert{
 			Level:   AlertWarning,
 			Icon:    "wi-strong-wind",
@@ -134,7 +134,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if cur.Humidity >= 85 {
+	if cur.Humidity >= humidityHigh {
 		alerts = append(alerts, Alert{
 			Level:   AlertInfo,
 			Icon:    "wi-humidity",
@@ -143,7 +143,7 @@ func Alerts(info *WeatherInfo) []Alert {
 		})
 	}
 
-	if windKmh >= 39 && windKmh < 62 {
+	if windKmh >= windBreezy && windKmh < windStrong {
 		alerts = append(alerts, Alert{
 			Level:   AlertInfo,
 			Icon:    "wi-windy",
