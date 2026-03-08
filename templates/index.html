@@ -168,7 +168,7 @@
       width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,.08); border-radius: 50%; padding: 5px; flex-shrink: 0;
     }
-    .outfit-headline-icon svg { width: 100%; height: 100%; stroke: rgba(0,0,0,.6); }
+    .outfit-headline-icon svg { width: 100%; height: 100%; fill: none; stroke: rgba(0,0,0,.6); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     [data-theme="dark"] .outfit-item  { background: #2a2638; border-color: rgba(255,255,255,.2); box-shadow: 3px 3px 0 rgba(255,255,255,.15); }
     [data-theme="dark"] .outfit-item:hover { box-shadow: 5px 5px 0 rgba(255,255,255,.2); }
@@ -669,23 +669,6 @@
       text-transform: capitalize;
       margin-top: .4rem;
     }
-    .brut-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      background: var(--orange);
-      color: #fff;
-      font-family: var(--font-mono);
-      font-size: .6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      padding: .28rem .7rem;
-      border: 2px solid var(--black);
-      box-shadow: 3px 3px 0 var(--black);
-      border-radius: 4px;
-      margin-top: .6rem;
-    }
 
     /* ── QUOTE / ADVICE ── */
     .quote-box {
@@ -726,7 +709,7 @@
       box-shadow: 4px 4px 0 rgba(0,0,0,.25);
     }
     .advice-icon { flex-shrink: 0; width: 16px; height: 16px; color: #fbbf24; }
-    .advice-icon svg { width: 100%; height: 100%; display: block; }
+    .advice-icon svg { width: 100%; height: 100%; display: block; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── STAT GRID ── */
     .stat-grid {
@@ -782,7 +765,7 @@
     }
 
     .stat-icon-wrap { width: 20px; height: 20px; margin-bottom: .35rem; color: rgba(0,0,0,.45); }
-    .stat-icon-wrap svg { width: 100%; height: 100%; display: block; }
+    .stat-icon-wrap svg { width: 100%; height: 100%; display: block; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
     .stat-lbl  { font-family: var(--font-mono); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(0,0,0,.45); }
     .stat-val  { font-size: 1.45rem; font-weight: 800; color: #111; line-height: 1.1; margin: .18rem 0 .05rem; }
     .stat-unit { font-size: .68rem; font-weight: 600; color: rgba(0,0,0,.4); }
@@ -800,7 +783,11 @@
     .uv-veryhigh{ color:#dc2626; }
     .uv-extreme { color:#7c3aed; }
 
-    /* ── SECTION BAR ── */
+    /* Consensus stat unit suffix and Updated tile time */
+    .cons-unit { font-size: .7rem; }
+    .stat-val-time { font-size: .9rem; font-family: var(--font-mono); }
+
+    .brut-section-bar svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px; }
     .brut-section-bar {
       background: var(--black);
       border: 3px solid var(--black);
@@ -964,11 +951,12 @@
       background: linear-gradient(180deg, rgba(255,255,255,.44), transparent);
       border-radius: var(--radius-lg) var(--radius-lg) 0 0; pointer-events: none;
     }
-    .fc-0 .flip-f { background: linear-gradient(145deg,#fef3c7,#fbbf24); box-shadow: 5px 5px 0 var(--black); }
-    .fc-1 .flip-f { background: linear-gradient(145deg,#dbeafe,#60a5fa); box-shadow: 5px 5px 0 var(--black); }
-    .fc-2 .flip-f { background: linear-gradient(145deg,#dcfce7,#4ade80); box-shadow: 5px 5px 0 var(--black); }
-    .fc-3 .flip-f { background: linear-gradient(145deg,#fce7f3,#f472b6); box-shadow: 5px 5px 0 var(--black); }
-    .fc-4 .flip-f { background: linear-gradient(145deg,#ede9fe,#a78bfa); box-shadow: 5px 5px 0 var(--black); }
+    .flip-f { box-shadow: 5px 5px 0 var(--black); }
+    .fc-0 .flip-f { background: linear-gradient(145deg,#fef3c7,#fbbf24); }
+    .fc-1 .flip-f { background: linear-gradient(145deg,#dbeafe,#60a5fa); }
+    .fc-2 .flip-f { background: linear-gradient(145deg,#dcfce7,#4ade80); }
+    .fc-3 .flip-f { background: linear-gradient(145deg,#fce7f3,#f472b6); }
+    .fc-4 .flip-f { background: linear-gradient(145deg,#ede9fe,#a78bfa); }
     .flip-f .wi { font-size: 2.2rem; color: var(--black); }
 
     .flip-b {
@@ -977,6 +965,7 @@
       box-shadow: 5px 5px 0 var(--orange);
     }
     .flip-b .wi { font-size: 1.8rem; color: var(--orange); }
+    .b-wind svg { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; width: 10px; height: 10px; vertical-align: middle; margin-right: 2px; }
 
     .f-date  { font-family:var(--font-mono); font-size:.62rem; font-weight:700; color:var(--black); letter-spacing:.5px; text-transform:uppercase; }
     .f-hi    { font-size:1.1rem; font-weight:800; color:var(--black); }
@@ -1446,7 +1435,7 @@
     </div>
     <div class="advice-box">
       <span class="advice-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
       </span>
@@ -1466,10 +1455,6 @@
         </div>
         <div class="curr-temp">{{printf "%.1f" $cur.Temp}}<span class="curr-unit">{{$info.TempUnit}}</span></div>
         <div class="curr-desc">{{$cur.Description}}</div>
-        <div class="brut-tag">
-          <i class="wi {{$cur.Icon}}" style="font-size:.85rem"></i>
-          {{$cur.Description}}
-        </div>
       </div>
     </div>
 
@@ -1478,7 +1463,7 @@
 
       <div class="stat-tile st-amber">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
           </svg>
         </div>
@@ -1488,7 +1473,7 @@
 
       <div class="stat-tile st-sky">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
           </svg>
         </div>
@@ -1499,7 +1484,7 @@
 
       <div class="stat-tile st-mint">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
           </svg>
         </div>
@@ -1513,7 +1498,7 @@
 
       <div class="stat-tile st-teal">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
           </svg>
         </div>
@@ -1524,7 +1509,7 @@
 
       <div class="stat-tile st-rose">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l3.5-3.5"/>
             <circle cx="12" cy="12" r="1" fill="currentColor"/>
           </svg>
@@ -1535,7 +1520,7 @@
 
       <div class="stat-tile st-violet">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
           </svg>
         </div>
@@ -1546,18 +1531,18 @@
 
       <div class="stat-tile st-peach">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10"/>
             <polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
         <div class="stat-lbl">Updated</div>
-        <div class="stat-val" style="font-size:.9rem;font-family:var(--font-mono)">{{$cur.Time}}</div>
+        <div class="stat-val stat-val-time">{{$cur.Time}}</div>
       </div>
 
       <div class="stat-tile st-lime">
         <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="4"/>
             <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
             <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
@@ -1608,7 +1593,7 @@
   <div class="anim-6">
     <div class="brut-section-bar">
       <span class="sec-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align:middle;margin-right:4px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         What to Wear
       </span>
       <span class="sec-hint">{{$outfit.TempTier}} conditions</span>
@@ -1616,7 +1601,7 @@
     <div class="clay" style="padding:1.4rem 1.4rem 1.2rem; margin-bottom:1.8rem;">
       <div class="outfit-headline">
         <span class="outfit-headline-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
         </span>
         {{$outfit.Headline}}
       </div>
@@ -1659,17 +1644,17 @@
       <div class="cons-stats">
         <div class="cons-stat">
           <div class="cons-stat-lbl">Avg Temp</div>
-          <div class="cons-stat-val">{{printf "%.1f" $cons.AvgTemp}}<span style="font-size:.7rem">{{$.Info.TempUnit}}</span></div>
+          <div class="cons-stat-val">{{printf "%.1f" $cons.AvgTemp}}<span class="cons-unit">{{$.Info.TempUnit}}</span></div>
           <div class="cons-stat-sub">{{printf "%.1f" $cons.MinTemp}} — {{printf "%.1f" $cons.MaxTemp}}</div>
         </div>
         <div class="cons-stat">
           <div class="cons-stat-lbl">Avg Humidity</div>
-          <div class="cons-stat-val">{{$cons.AvgHumidity}}<span style="font-size:.7rem">%</span></div>
+          <div class="cons-stat-val">{{$cons.AvgHumidity}}<span class="cons-unit">%</span></div>
           <div class="cons-stat-sub">across models</div>
         </div>
         <div class="cons-stat">
           <div class="cons-stat-lbl">Spread</div>
-          <div class="cons-stat-val" style="color:{{agreeColor $cons.AgreePct}}">{{printf "%.1f" $cons.Spread}}<span style="font-size:.7rem">{{$.Info.TempUnit}}</span></div>
+          <div class="cons-stat-val" style="color:{{agreeColor $cons.AgreePct}}">{{printf "%.1f" $cons.Spread}}<span class="cons-unit">{{$.Info.TempUnit}}</span></div>
           <div class="cons-stat-sub">model range</div>
         </div>
       </div>
@@ -1800,7 +1785,7 @@
             <i class="wi {{$day.Icon}}"></i>
             <div class="b-desc">{{$day.Description}}</div>
             <div class="b-wind">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:middle;margin-right:2px">
+              <svg viewBox="0 0 24 24" fill="none">
                 <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
               </svg>
               {{printf "%.0f" $day.WindMax}} {{$info.WindUnit}}
