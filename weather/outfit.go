@@ -182,10 +182,13 @@ func BuildOutfit(info *WeatherInfo) OutfitAdvice {
 func windLabel(kmh float64, unit string) string {
 	switch unit {
 	case "mph":
-		return strconv.Itoa(int(kmh/1.60934)) + " mph"
+		mph := int(kmh / 1.60934)
+		return strconv.Itoa(mph) + " mph"
 	case "kn":
-		return strconv.Itoa(int(kmh/1.852)) + " kn"
+		knots := int(kmh / 1.852)
+		return strconv.Itoa(knots) + " kn"
 	default:
-		return strconv.Itoa(int(kmh)) + " km/h"
+		kmhInt := int(kmh)
+		return strconv.Itoa(kmhInt) + " km/h"
 	}
 }

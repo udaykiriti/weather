@@ -20,7 +20,9 @@ type Alert struct {
 // toCelsius converts a temperature to Celsius regardless of the unit label.
 func toCelsius(temp float64, unitSymbol string) float64 {
 	if unitSymbol == "°F" {
-		return (temp - 32) * 5 / 9
+		tempMinusFreezing := temp - 32
+		celsius := tempMinusFreezing * 5 / 9
+		return celsius
 	}
 	return temp
 }
@@ -28,7 +30,8 @@ func toCelsius(temp float64, unitSymbol string) float64 {
 // toKmh converts wind speed to km/h regardless of the unit label.
 func toKmh(speed float64, unitLabel string) float64 {
 	if unitLabel == "mph" {
-		return speed * 1.60934
+		kmh := speed * 1.60934
+		return kmh
 	}
 	return speed
 }

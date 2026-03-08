@@ -110,39 +110,39 @@ func Quote(wmoCode int) string {
 			"Conditions unknown. Like your weekend plans.",
 		}
 	}
-	return pool[rand.Intn(len(pool))]
+	// Pick a random quote from the matched pool.
+	poolSize := len(pool)
+	randomIndex := rand.Intn(poolSize)
+	return pool[randomIndex]
 }
 
 // Advice returns a feels-like temperature advice string.
 func Advice(feelsLike float64, unit string) string {
-	// Normalise to Celsius for comparison
-	temp := feelsLike
-	if unit == "°F" {
-		temp = (feelsLike - 32) * 5 / 9
-	}
+	// Normalise to Celsius using the shared helper so the logic is unit-agnostic.
+	tempCelsius := toCelsius(feelsLike, unit)
 
 	switch {
-	case temp <= -20:
+	case tempCelsius <= -20:
 		return "It feels arctic out there. Wrap up like a burrito."
-	case temp <= -10:
+	case tempCelsius <= -10:
 		return "Dangerously cold. Only go outside if your name is a penguin."
-	case temp <= 0:
+	case tempCelsius <= 0:
 		return "Below freezing. Every exposed inch of skin will regret this."
-	case temp <= 5:
+	case tempCelsius <= 5:
 		return "Heavy coat mandatory. Your nose will run regardless."
-	case temp <= 10:
+	case tempCelsius <= 10:
 		return "Jacket weather. The kind that makes you question the seasons."
-	case temp <= 15:
+	case tempCelsius <= 15:
 		return "A light jacket will do. Maybe two. Bring both."
-	case temp <= 20:
+	case tempCelsius <= 20:
 		return "Comfortable. Wear what you want, nobody's judging."
-	case temp <= 25:
+	case tempCelsius <= 25:
 		return "T-shirt weather. Go enjoy it — you earned this."
-	case temp <= 30:
+	case tempCelsius <= 30:
 		return "Warm. Stay hydrated and pretend you love summer."
-	case temp <= 35:
+	case tempCelsius <= 35:
 		return "Hot. Ice cream is not optional at this point."
-	case temp <= 40:
+	case tempCelsius <= 40:
 		return "Dangerously hot. You are now a human crouton."
 	default:
 		return "It's basically an oven outside. Stay in. Order food."

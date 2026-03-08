@@ -26,27 +26,38 @@ type Client struct {
 
 // NewClient returns a Client with a 30-second timeout and a resilient DNS
 // resolver that falls back to public DNS servers when the system resolver fails.
+// publicDNSServers is the fallback list tried when the system resolver fails.
+var publicDNSServers = []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"}
+
 func NewClient() *Client {
 	resolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 			d := net.Dialer{Timeout: 5 * time.Second}
-			// Try public DNS servers when the system resolver is unavailable.
-			for _, dns := range []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"} {
-				if conn, err := d.DialContext(ctx, "udp", dns); err == nil {
+			// Try each public DNS server in order; return on first success.
+			for _, dnsAddr := range publicDNSServers {
+				conn, err := d.DialContext(ctx, "udp", dnsAddr)
+				if err == nil {
 					return conn, nil
 				}
 			}
-			return d.DialContext(ctx, network, address) // last-resort: system
+			// All public DNS servers failed; fall back to the system resolver.
+			return d.DialContext(ctx, network, address)
 		},
 	}
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:  30 * time.Second,
-			Resolver: resolver,
-		}).DialContext,
+
+	dialer := &net.Dialer{
+		Timeout:  30 * time.Second,
+		Resolver: resolver,
 	}
-	return &Client{HTTP: &http.Client{Timeout: 30 * time.Second, Transport: transport}}
+	transport := &http.Transport{
+		DialContext: dialer.DialContext,
+	}
+	httpClient := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: transport,
+	}
+	return &Client{HTTP: httpClient}
 }
 
 // --- internal API types ---
@@ -567,10 +578,17 @@ func WMOIconClass(code int) string {
 }
 
 // WindCompass converts a wind direction in degrees to an 8-point compass label.
+// WindCompass converts a wind direction in degrees to an 8-point compass label.
 func WindCompass(deg int) string {
-	var dirs = [8]string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
-	idx := int((float64(deg)+22.5)/45.0) % 8
-	return dirs[idx]
+	directions := [8]string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+
+	// Each compass sector spans 45°.
+	// Offset by 22.5° so that North covers 337.5°–22.5° (not 0°–45°).
+	offsetDeg := float64(deg) + 22.5
+	sector := offsetDeg / 45.0
+	index := int(sector) % 8
+
+	return directions[index]
 }
 
 // ── Moon phase ────────────────────────────────────────────────────────────────
@@ -584,10 +602,19 @@ var referenceNewMoon = time.Date(2000, 1, 6, 18, 14, 0, 0, time.UTC)
 // moonPhase returns a value in [0, 1) representing the current lunar phase:
 // 0 = new moon, 0.25 = first quarter, 0.5 = full moon, 0.75 = last quarter.
 func moonPhase(t time.Time) float64 {
-	days := t.Sub(referenceNewMoon).Hours() / 24
-	phase := math.Mod(days, synodicMonth) / synodicMonth
+	// How long has passed since the reference new moon, in days.
+	elapsed := t.Sub(referenceNewMoon)
+	daysSinceNewMoon := elapsed.Hours() / 24
+
+	// Find how many days into the current synodic cycle we are.
+	daysIntoCurrentCycle := math.Mod(daysSinceNewMoon, synodicMonth)
+
+	// Convert to a 0–1 fraction of the full cycle.
+	phase := daysIntoCurrentCycle / synodicMonth
+
+	// math.Mod can return a negative value for dates before the epoch.
 	if phase < 0 {
-		phase += 1
+		phase = phase + 1
 	}
 	return phase
 }

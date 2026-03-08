@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+// roundTo1dp rounds a float64 to one decimal place.
+// Used throughout consensus calculations for consistent display precision.
+func roundTo1dp(value float64) float64 {
+	rounded := math.Round(value * 10)
+	return rounded / 10
+}
+
 // forecastModels lists the free Open-Meteo models used for consensus.
 var forecastModels = []struct {
 	Name  string
@@ -163,24 +170,24 @@ func (c *Client) FetchConsensus(ctx context.Context, lat, lon float64, timezone,
 	}
 
 	cons.AvailCount = count
-	cons.MinTemp = math.Round(minTemp*10) / 10
-	cons.MaxTemp = math.Round(maxTemp*10) / 10
-	cons.AvgTemp = math.Round(sumTemp/float64(count)*10) / 10
+	cons.MinTemp = roundTo1dp(minTemp)
+	cons.MaxTemp = roundTo1dp(maxTemp)
+	cons.AvgTemp = roundTo1dp(sumTemp / float64(count))
 	cons.AvgHumidity = sumHumidity / count
-	cons.AvgWind = math.Round(sumWind/float64(count)*10) / 10
-	cons.AvgPressure = math.Round(sumPressure/float64(count)*10) / 10
-	cons.Spread = math.Round((cons.MaxTemp-cons.MinTemp)*10) / 10
+	cons.AvgWind = roundTo1dp(sumWind / float64(count))
+	cons.AvgPressure = roundTo1dp(sumPressure / float64(count))
+	cons.Spread = roundTo1dp(cons.MaxTemp - cons.MinTemp)
 
-	// Agreement: 100% at 0°C spread, losing agreementSpreadFactor% per degree.
-	pct := 100 - int(cons.Spread*agreementSpreadFactor)
-	if pct < 0 {
-		pct = 0
+	// Agreement starts at 100% and loses agreementSpreadFactor points per °C of spread.
+	rawAgreePct := 100 - int(cons.Spread*agreementSpreadFactor)
+	if rawAgreePct < 0 {
+		rawAgreePct = 0
 	}
-	cons.AgreePct = pct
+	cons.AgreePct = rawAgreePct
 	switch {
-	case pct >= agreementHighPct:
+	case rawAgreePct >= agreementHighPct:
 		cons.Agreement = "High"
-	case pct >= agreementModeratePct:
+	case rawAgreePct >= agreementModeratePct:
 		cons.Agreement = "Moderate"
 	default:
 		cons.Agreement = "Low"
