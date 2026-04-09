@@ -4,6 +4,40 @@ Weather App
 This project documentation has been split into smaller files under `docs/` for
 better maintainability.
 
+Overview
+========
+
+Weather App is a Go project that provides both a terminal client and a small
+web UI for checking current conditions and forecasts. It uses the free
+Open-Meteo APIs, so there is no API key setup required.
+
+The app fetches location data through Open-Meteo geocoding and then displays
+current weather, a 5-day forecast, daylight details, alerts, and a simple
+multi-model consensus view.
+
+Highlights
+==========
+
+- CLI and web interfaces from the same codebase
+- Current conditions including temperature, humidity, pressure, wind, and UV
+- 5-day forecast with precipitation probability
+- Sunrise and sunset details with a daylight arc
+- Weather alerts such as heat, frost, storm, and high UV warnings
+- Multi-model consensus using ECMWF, ICON, Meteo-France, and MET Norway
+- Web server caching to reduce repeat upstream requests
+- No API key required
+
+Project Layout
+==============
+
+- `main.go`            Web server entry point
+- `cmd/cli/main.go`    CLI entry point
+- `weather/`           Core weather client, alerts, consensus, and formatting logic
+- `templates/`         HTML templates for the web interface
+- `docs/`              Expanded documentation
+- `run.sh`             Helper script for common tasks
+- `Makefile`           Build, run, and maintenance commands
+
 Docs
 ====
 
@@ -21,3 +55,11 @@ Quick Start
 - make build
 - make run-cli ARGS="London"
 - make run-web
+
+Requirements
+============
+
+- Go 1.21 or higher
+- Outbound internet access to:
+  - `geocoding-api.open-meteo.com`
+  - `api.open-meteo.com`
