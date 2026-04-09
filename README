@@ -1,0 +1,23 @@
+Weather App
+===========
+
+This project documentation has been split into smaller files under `docs/` for
+better maintainability.
+
+Docs
+====
+
+- docs/README.md        Documentation index
+- docs/overview.md      Project summary and feature overview
+- docs/setup.md         Setup and build commands
+- docs/cli.md           CLI usage
+- docs/web.md           Web server usage
+- docs/operations.md    API reference, env vars, proxy notes, and limitations
+
+Quick Start
+===========
+
+- go mod tidy
+- make build
+- make run-cli ARGS="London"
+- make run-web
